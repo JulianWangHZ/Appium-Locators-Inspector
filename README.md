@@ -23,6 +23,10 @@
 
 Built for QA and mobile automation engineers who want to stop hand-writing brittle XPaths.
 
+## See It in Action
+
+https://github.com/user-attachments/assets/c992b6ef-2318-42ab-8d90-824c9413fa41
+
 ## Features
 
 - 📱 **Live device mirror + element tree** — inspect real Android & iOS apps in real time.
@@ -35,7 +39,7 @@ Built for QA and mobile automation engineers who want to stop hand-writing britt
 - 🌗 **Light & dark themes** — a quiet, editorial UI that stays readable either way.
 - 🔒 **100% local** — nothing leaves your machine. No accounts, no telemetry.
 
-## See It in Action
+## A Closer Look
 
 | Popup — connect flow | Inspector — inspect & locate |
 | --- | --- |
