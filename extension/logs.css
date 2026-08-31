@@ -1,0 +1,258 @@
+/* Server logs — warm paper theme (see .claude/DESIGN.md). Tokens from styles/tokens.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-body);
+    background: var(--color-stone-canvas);
+    color: var(--color-ink-black);
+    font-size: 14px;
+    line-height: 1.64;
+    overflow: hidden;
+}
+
+.logs-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header — flat white toolbar over canvas */
+.logs-header {
+    background: var(--color-pure-white);
+    border-bottom: 1px solid var(--color-stone-border);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-left svg,
+.header-left img {
+    color: var(--color-cyan-signal);
+    border-radius: 6px;
+}
+
+.header-left h1 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--color-ink-black);
+}
+
+/* Subtle "Server logs" label chip */
+.header-label {
+    padding: 4px 12px;
+    background: var(--color-stone-canvas);
+    border: 1px solid var(--color-stone-border);
+    border-radius: var(--radius-buttons);
+    font-size: 12px;
+    color: var(--color-warm-gray);
+    white-space: nowrap;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Filter Controls — pill tab group */
+.filter-controls {
+    display: flex;
+    gap: 4px;
+    background: var(--color-stone-canvas);
+    border: 1px solid var(--color-stone-border);
+    padding: 4px;
+    border-radius: var(--radius-buttons);
+}
+
+.filter-btn {
+    padding: 6px 14px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-buttons);
+    background: transparent;
+    color: var(--color-warm-gray);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filter-btn:hover {
+    background: var(--color-pure-white);
+    color: var(--color-ink-black);
+}
+
+.filter-btn.active {
+    background: var(--color-cyan-signal);
+    border-color: var(--color-cyan-edge);
+    color: var(--color-pure-white);
+}
+
+/* Clear Button — ghost pill */
+.clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--color-stone-border);
+    border-radius: var(--radius-buttons);
+    background: transparent;
+    color: var(--color-ink-black);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.clear-btn:hover {
+    background: var(--color-pure-white);
+    border-color: var(--color-stone-muted);
+    color: var(--color-ink-black);
+}
+
+.clear-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Logs Content — dark inverted terminal surface (on-brand for code/log views) */
+.logs-content {
+    flex: 1;
+    background: var(--color-soot);
+    padding: 16px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: #d6d3d1;
+}
+
+/* Custom Scrollbar */
+.logs-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.logs-content::-webkit-scrollbar-track {
+    background: var(--color-soot);
+}
+
+.logs-content::-webkit-scrollbar-thumb {
+    background: #44403c;
+    border-radius: 5px;
+}
+
+.logs-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-warm-gray);
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #a8a29e;
+    text-align: center;
+}
+
+.empty-state svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+    color: #d6d3d1;
+}
+
+.empty-state span {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: #a8a29e;
+}
+
+.empty-state.hidden {
+    display: none;
+}
+
+/* Log Entry */
+.log-entry {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: var(--radius-inputs);
+    display: flex;
+    gap: 12px;
+    transition: background 0.1s;
+}
+
+.log-entry:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.log-timestamp {
+    color: #a8a29e;
+    font-size: 11px;
+    flex-shrink: 0;
+    min-width: 90px;
+}
+
+.log-message {
+    flex: 1;
+    word-break: break-word;
+}
+
+.log-entry.log-info .log-message {
+    color: #d6d3d1;
+}
+
+.log-entry.log-warning .log-message {
+    color: #fbbf24;
+}
+
+.log-entry.log-error .log-message {
+    color: #f87171;
+}
+
+.log-entry.log-info .log-timestamp::before {
+    content: '[INFO] ';
+    color: #d6d3d1;
+    font-weight: 600;
+}
+
+.log-entry.log-warning .log-timestamp::before {
+    content: '[WARN] ';
+    color: #fbbf24;
+    font-weight: 600;
+}
+
+.log-entry.log-error .log-timestamp::before {
+    content: '[ERROR] ';
+    color: #f87171;
+    font-weight: 600;
+}
+
+/* Hidden class for filtering */
+.log-entry.hidden {
+    display: none;
+}

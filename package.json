@@ -1,0 +1,22 @@
+{
+    "name": "appium-locators-inspector",
+    "version": "1.0.0",
+    "description": "Chrome extension for identifying locators in Android/iOS apps using Appium",
+    "scripts": {
+        "backend": "cd backend && npm start",
+        "backend:dev": "cd backend && npm run dev",
+        "install:backend": "cd backend && npm install",
+        "install:all": "npm run install:backend",
+        "package:extension": "npm run build:companion && node -e \"require('fs').rmSync('appium-locators-inspector-extension.zip',{force:true})\" && cd extension && zip -r ../appium-locators-inspector-extension.zip . -x '*.DS_Store' -x '__MACOSX/*'",
+        "build:companion": "node scripts/build-companion-release.js"
+    },
+    "keywords": [
+        "appium",
+        "mobile",
+        "testing",
+        "chrome-extension",
+        "locator"
+    ],
+    "author": "Julian Wang",
+    "license": "MIT"
+}

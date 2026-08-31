@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Flat card tile on warm paper -->
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="#fafaf9" stroke="#e8e6e5" stroke-width="3"/>
+  <!-- Element selection brackets (ink) -->
+  <g stroke="#0c0a09" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M40 30 H32 a4 4 0 0 0 -4 4 V42"/>
+    <path d="M88 30 H96 a4 4 0 0 1 4 4 V42"/>
+    <path d="M40 98 H32 a4 4 0 0 1 -4 -4 V86"/>
+    <path d="M88 98 H96 a4 4 0 0 0 4 -4 V86"/>
+  </g>
+  <!-- Locator crosshair target (single cyan accent) -->
+  <g stroke="#3ba6f1" stroke-width="7" stroke-linecap="round" fill="none">
+    <circle cx="64" cy="64" r="16"/>
+    <path d="M64 38 V50"/>
+    <path d="M64 78 V90"/>
+    <path d="M38 64 H50"/>
+    <path d="M78 64 H90"/>
+  </g>
+  <circle cx="64" cy="64" r="4" fill="#3ba6f1"/>
+</svg>

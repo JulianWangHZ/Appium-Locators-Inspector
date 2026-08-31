@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.iml
+# Keep .claude/ tracked (holds DESIGN.md and other project docs)
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Build output
+dist/
+build/
+
+# Secrets / env
+.env
+.env.*
+*.pem
+*.key
+
+# Packaged artifacts
+*.zip
+*.crx
+
+# Project-specific
+backend/temp_*.png
+extension/installers/companion-release.json

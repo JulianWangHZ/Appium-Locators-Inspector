@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appium Locators Inspector – Settings</title>
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="styles/tokens.css">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: var(--font-body);
+            background: var(--color-stone-canvas);
+            color: var(--color-ink-black);
+            font-size: 14px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--color-cyan-edge); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* App shell */
+        .settings-app {
+            display: grid;
+            grid-template-columns: 236px 1fr;
+            gap: 0;
+            max-width: 1040px;
+            min-height: 100vh;
+            margin: 0 auto;
+        }
+
+        /* Left rail */
+        .settings-rail {
+            position: sticky;
+            top: 0;
+            align-self: start;
+            height: 100vh;
+            padding: 24px 16px;
+            border-right: 1px solid var(--color-stone-border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .rail-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px;
+        }
+
+        .rail-brand img { display: block; border-radius: 7px; }
+
+        .rail-brand .name {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+        }
+
+        .rail-brand .ver { font-size: 11px; color: var(--color-ash-gray); }
+
+        .rail-nav { display: flex; flex-direction: column; gap: 2px; }
+
+        .rail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--color-warm-gray);
+            font-family: var(--font-body);
+            font-size: 13.5px;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .rail-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+        .rail-item:hover { color: var(--color-ink-black); background: var(--color-pure-white); }
+
+        .rail-item.active {
+            background: var(--color-pure-white);
+            border-color: var(--color-stone-border);
+            color: var(--color-ink-black);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .rail-foot { margin-top: auto; padding: 0 8px; font-size: 11px; color: var(--color-ash-gray); }
+
+        /* Content */
+        .settings-content { padding: 40px 48px; max-width: 760px; }
+
+        .settings-pane { display: none; }
+        .settings-pane.active { display: block; animation: fadeIn 0.18s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+        .pane-title {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 500;
+            letter-spacing: -0.7px;
+            margin: 0 0 4px;
+        }
+
+        .pane-lead { color: var(--color-warm-gray); margin: 0 0 28px; max-width: 60ch; }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            margin: 28px 0 12px;
+        }
+
+        h3:first-of-type { margin-top: 0; }
+
+        /* Cards / groups */
+        .group {
+            background: var(--color-pure-white);
+            border: 1px solid var(--color-stone-border);
+            border-radius: var(--radius-feature-card);
+            padding: 6px 20px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .prereq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .prereq-item {
+            background: var(--color-pure-white);
+            border: 1px solid var(--color-stone-border);
+            border-radius: var(--radius-cards);
+            padding: 14px 16px;
+        }
+
+        .prereq-item strong { display: block; margin-bottom: 5px; font-size: 13px; }
+        .prereq-item span { color: var(--color-warm-gray); font-size: 12px; }
+
+        /* Install platform pills */
+        .platform-tabs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; background: var(--color-stone-canvas); border: 1px solid var(--color-stone-border); border-radius: 9999px; }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 9999px;
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font-body);
+            color: var(--color-warm-gray);
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        .tab-btn.active {
+            background: var(--color-pure-white);
+            color: var(--color-ink-black);
+            border-color: var(--color-stone-border);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        code {
+            background: var(--color-stone-canvas);
+            border: 1px solid var(--color-stone-border);
+            padding: 2px 7px;
+            border-radius: var(--radius-icons);
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        pre {
+            background: var(--color-soot);
+            color: #d6d3d1;
+            padding: 14px 16px;
+            border-radius: var(--radius-cards);
+            overflow-x: auto;
+            margin: 8px 0 0;
+        }
+
+        pre code { background: none; border: none; color: inherit; padding: 0; font-size: 13px; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--color-cyan-signal);
+            border: 1px solid var(--color-cyan-edge);
+            color: #fff;
+            padding: 9px 18px;
+            border-radius: var(--radius-buttons);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            font-family: var(--font-body);
+            text-decoration: none;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+
+        .btn:hover { background: var(--color-cyan-edge); text-decoration: none; }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-ink-black);
+            border: 1px solid var(--color-stone-border);
+        }
+
+        .btn-secondary:hover { background: var(--color-pure-white); border-color: var(--color-stone-muted); }
+
+        .download-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* Next-step hint rows (no numbered circles, no side bar) */
+        .hint-row { display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; border-top: 1px solid var(--color-stone-border); }
+        .hint-row:first-child { border-top: none; }
+        .hint-ico {
+            flex-shrink: 0; width: 30px; height: 30px; border-radius: 9px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: var(--color-sky-wash); color: var(--color-cyan-edge);
+        }
+        .hint-ico svg { width: 16px; height: 16px; }
+        .hint-row strong { display: block; margin-bottom: 2px; }
+        .hint-row p { margin: 0; color: var(--color-warm-gray); font-size: 13px; }
+
+        /* Setting rows */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--color-stone-border);
+            gap: 18px;
+        }
+        .setting-row:last-of-type { border-bottom: none; }
+        .setting-text { min-width: 0; }
+        .setting-text label, .setting-text .setting-label { font-weight: 500; display: block; }
+        .setting-text .hint { color: var(--color-ash-gray); font-size: 12px; margin-top: 2px; }
+
+        input[type="text"], input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid var(--color-stone-muted);
+            border-radius: var(--radius-inputs);
+            width: 240px;
+            font-size: 13px;
+            font-family: var(--font-body);
+            background: var(--color-pure-white);
+            color: var(--color-ink-black);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        input:focus { border-color: var(--color-cyan-signal); outline: none; box-shadow: 0 0 0 2px rgba(59,166,241,0.25); }
+
+        .save-row { margin-top: 20px; }
+
+        /* Theme toggle */
+        .theme-toggle { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--color-stone-border); border-radius: 9999px; background: var(--color-stone-canvas); }
+        .theme-option {
+            min-width: 68px; border: 1px solid transparent; border-radius: 9999px; padding: 7px 14px;
+            background: transparent; color: var(--color-warm-gray); cursor: pointer;
+            font-size: 13px; font-weight: 500; font-family: var(--font-body);
+            transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .theme-option.active { background: var(--color-pure-white); border-color: var(--color-stone-border); color: var(--color-ink-black); box-shadow: var(--shadow-subtle); }
+        .theme-option:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(59,166,241,0.25); }
+
+        /* Environment check */
+        .check-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+        #download-status { font-size: 12px; color: var(--color-cyan-edge); margin-top: 10px; }
+        #check-result { margin-top: 16px; }
+        .check-summary { font-weight: 500; margin-bottom: 10px; }
+        .check-summary.ok { color: var(--color-cyan-edge); }
+        .check-summary.bad { color: var(--color-error); }
+        .status-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--color-stone-border); border-radius: var(--radius-inputs); margin-bottom: 6px; background: var(--color-pure-white); }
+        .status-text { min-width: 0; }
+        .status-name { font-weight: 600; font-size: 13px; color: var(--color-ink-black); }
+        .status-detail { margin-top: 2px; font-family: var(--font-mono); font-size: 12px; color: var(--color-warm-gray); word-break: break-all; }
+        .dot { width: 9px; height: 9px; border-radius: 9999px; background: var(--color-stone-muted); flex-shrink: 0; margin-top: 5px; }
+        .dot.ok { background: var(--color-cyan-signal); box-shadow: 0 0 0 3px rgba(59,166,241,0.18); }
+        .dot.warn { background: var(--color-ash-gray); }
+        .dot.err { background: var(--color-error); }
+        .check-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--color-warm-gray); }
+        .check-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+        /* Help table */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th { text-align: left; padding: 10px 0; color: var(--color-warm-gray); font-weight: 600; border-bottom: 1px solid var(--color-stone-border); }
+        tbody td { padding: 12px 0; border-bottom: 1px solid var(--color-stone-border); vertical-align: top; }
+        tbody td:first-child { padding-right: 20px; width: 42%; }
+        tbody tr:last-child td { border-bottom: none; }
+
+        @media (max-width: 720px) {
+            .settings-app { grid-template-columns: 1fr; }
+            .settings-rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--color-stone-border); }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; }
+            .settings-content { padding: 28px 20px; }
+            .prereq-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="settings-app">
+        <aside class="settings-rail">
+            <div class="rail-brand">
+                <img src="icons/icon_optimized.svg" width="26" height="26" alt="Appium Locators Inspector">
+                <div>
+                    <div class="name">Locators Inspector</div>
+                    <div class="ver">v1.0.0</div>
+                </div>
+            </div>
+            <nav class="rail-nav">
+                <button class="rail-item active" data-pane="setup" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 21.7l.9-5.4L4.2 8.5l5.4-.8z"/></svg>
+                    Setup
+                </button>
+                <button class="rail-item" data-pane="environment" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    Environment
+                </button>
+                <button class="rail-item" data-pane="servers" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+                    Servers
+                </button>
+                <button class="rail-item" data-pane="appearance" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                    Appearance
+                </button>
+                <button class="rail-item" data-pane="help" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                    Help
+                </button>
+            </nav>
+            <div class="rail-foot">Real-time Appium element inspector &amp; locator generator.</div>
+        </aside>
+
+        <main class="settings-content">
+            <!-- Setup -->
+            <section class="settings-pane active" id="pane-setup">
+                <h1 class="pane-title">Setup</h1>
+                <p class="pane-lead">Welcome! The extension talks to your devices through a small local companion. Install the prerequisites below, then run the one-time auto-setup — you'll only do this once.</p>
+
+                <h3>Prerequisites</h3>
+                <div class="prereq-grid">
+                    <div class="prereq-item"><strong>Node.js v18+</strong><span>Runs the backend server<br><a href="https://nodejs.org" target="_blank">nodejs.org</a></span></div>
+                    <div class="prereq-item"><strong>Appium</strong><span>Mobile automation server<br><code>npm install -g appium</code></span></div>
+                    <div class="prereq-item"><strong>Android driver</strong><span>For Android devices<br><code>appium driver install uiautomator2</code></span></div>
+                    <div class="prereq-item"><strong>iOS driver (macOS)</strong><span>For iOS simulators<br><code>appium driver install xcuitest</code></span></div>
+                    <div class="prereq-item"><strong>ADB (Android)</strong><span>Via Android Studio or<br><a href="https://developer.android.com/studio/releases/platform-tools" target="_blank">Platform Tools</a></span></div>
+                    <div class="prereq-item"><strong>Xcode (iOS/macOS)</strong><span>iOS simulator support<br>From the Mac App Store</span></div>
+                </div>
+
+                <h3>Install the companion</h3>
+                <div class="platform-tabs">
+                    <button class="tab-btn active" data-tab="mac" type="button">macOS / Linux</button>
+                    <button class="tab-btn" data-tab="windows" type="button">Windows</button>
+                </div>
+                <div id="tab-mac" class="tab-content active">
+                    <div class="download-group"><button class="btn" id="download-mac" type="button">Download auto-setup</button></div>
+                    <pre><code>cd ~/Downloads
+bash install_appium_locators_inspector.sh</code></pre>
+                </div>
+                <div id="tab-windows" class="tab-content">
+                    <div class="download-group"><button class="btn" id="download-windows" type="button">Download auto-setup</button></div>
+                    <pre><code>cd %USERPROFILE%\Downloads
+install_appium_locators_inspector.bat</code></pre>
+                </div>
+                <div id="download-status"></div>
+
+                <h3>Then</h3>
+                <div class="hint-row">
+                    <span class="hint-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg></span>
+                    <div><strong>Reload the extension</strong><p>Open <code>chrome://extensions</code>, find Appium Locators Inspector, and hit reload so it picks up the companion.</p></div>
+                </div>
+                <div class="hint-row">
+                    <span class="hint-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></span>
+                    <div><strong>Connect a device</strong><p>Open the popup, start your servers, pick a platform and device — and you're inspecting.</p></div>
+                </div>
+            </section>
+
+            <!-- Environment -->
+            <section class="settings-pane" id="pane-environment">
+                <h1 class="pane-title">Environment check</h1>
+                <p class="pane-lead">Not sure everything's ready? Run a quick preflight and we'll check the companion, backend, and platform tooling for you — think of it as an Appium doctor.</p>
+
+                <div class="check-actions">
+                    <button class="btn btn-secondary" id="check-backend-btn" type="button">Run check</button>
+                </div>
+                <div id="check-result"></div>
+                <div class="check-legend">
+                    <span><span class="dot ok"></span> Ready</span>
+                    <span><span class="dot warn"></span> Optional / not detected</span>
+                    <span><span class="dot err"></span> Needs attention</span>
+                </div>
+            </section>
+
+            <!-- Servers -->
+            <section class="settings-pane" id="pane-servers">
+                <h1 class="pane-title">Servers</h1>
+                <p class="pane-lead">Fine-tune how the extension connects to your backend and Appium. The defaults work for most setups — only change these if you know you need to.</p>
+
+                <div class="group">
+                    <div class="setting-row">
+                        <div class="setting-text"><label for="backend-port">Backend port</label><div class="hint">Local companion HTTP port</div></div>
+                        <input type="number" id="backend-port" value="8765">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-text"><label for="appium-url">Appium URL</label><div class="hint">Base URL of your Appium server</div></div>
+                        <input type="text" id="appium-url" value="http://localhost:4723">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-text"><label for="fps-limit">Screen mirror FPS</label><div class="hint">1–30 frames per second</div></div>
+                        <input type="number" id="fps-limit" value="3" min="1" max="30" step="1">
+                    </div>
+                </div>
+                <div class="save-row"><button class="btn" id="save-btn" type="button">Save settings</button></div>
+            </section>
+
+            <!-- Appearance -->
+            <section class="settings-pane" id="pane-appearance">
+                <h1 class="pane-title">Appearance</h1>
+                <p class="pane-lead">Pick the look that's easy on your eyes. Whatever you choose here carries across the popup and inspector too.</p>
+
+                <div class="group">
+                    <div class="setting-row">
+                        <div class="setting-text"><span id="theme-label" class="setting-label">Theme</span><div class="hint">Light is the default</div></div>
+                        <div class="theme-toggle" role="group" aria-labelledby="theme-label">
+                            <button type="button" class="theme-option" data-theme="light" aria-pressed="true">Light</button>
+                            <button type="button" class="theme-option" data-theme="dark" aria-pressed="false">Dark</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Help -->
+            <section class="settings-pane" id="pane-help">
+                <h1 class="pane-title">Troubleshooting</h1>
+                <p class="pane-lead">Something not working? Here are the fixes for the issues people hit most. If you're still stuck, the logs at <code>~/.appium_locators_inspector/native-host.log</code> usually tell the story.</p>
+
+                <div class="group">
+                    <table>
+                        <thead><tr><th>Issue</th><th>Solution</th></tr></thead>
+                        <tbody>
+                            <tr><td>"Native messaging host not found"</td><td>Re-run the auto-setup installer, then reload the extension.</td></tr>
+                            <tr><td>Servers won't start</td><td>Check logs in the popup. Ensure Node.js is installed.</td></tr>
+                            <tr><td>Appium not found</td><td><code>npm install -g appium</code></td></tr>
+                            <tr><td>No Android devices</td><td>Run <code>adb devices</code> in a terminal. Enable USB debugging.</td></tr>
+                            <tr><td>No iOS simulators</td><td>Boot a simulator in Xcode. macOS only.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
