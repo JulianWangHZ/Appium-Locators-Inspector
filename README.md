@@ -6,10 +6,13 @@
 
 **Inspect Android & iOS apps via Appium — live UI tree, ranked locators, and record actions into runnable Java / Python / TypeScript tests.**
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-3ba6f1.svg?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/appium-locators-inspector/annejeomdlkidljonmpmhcdnekkadjfb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-3ba6f1.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-0c0a09)
 ![Chrome](https://img.shields.io/badge/Chrome-Manifest%20V3-0c0a09)
 ![Appium](https://img.shields.io/badge/Appium-3.x-0c0a09)
+
+**[⬇️ Install from the Chrome Web Store](https://chromewebstore.google.com/detail/appium-locators-inspector/annejeomdlkidljonmpmhcdnekkadjfb)**
 
 <img src="docs/images/hero-inspector.png" width="900" alt="Appium Locators Inspector">
 
