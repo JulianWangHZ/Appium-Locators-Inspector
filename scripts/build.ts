@@ -1,7 +1,7 @@
 /** Compile the extension, backend and native host into dist/, then package the companion. */
 import { build, type BuildOptions } from 'esbuild';
-import { chmodSync, copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { chmodSync, copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { buildCompanionRelease } from './build-companion-release.js';
 import { DIST, DIST_BACKEND, DIST_EXTENSION, DIST_NATIVE_HOST, ROOT, SRC } from './paths.js';
 
@@ -25,7 +25,15 @@ const common: BuildOptions = { bundle: true, sourcemap: false, legalComments: 'n
 
 async function buildExtension(): Promise<void> {
     const extSrc = join(SRC, 'extension');
-    cpSync(extSrc, DIST_EXTENSION, { recursive: true, filter: (src) => !src.endsWith('.ts') && !src.endsWith('.DS_Store') });
+    // Static assets only (HTML, CSS, icons, installers); TypeScript is bundled below.
+    const isAsset = (file: string) => !file.endsWith('.ts') && !file.endsWith('.DS_Store');
+    for (const entry of readdirSync(extSrc, { recursive: true, withFileTypes: true })) {
+        if (!entry.isFile() || !isAsset(entry.name)) continue;
+        const from = join(entry.parentPath, entry.name);
+        const to = join(DIST_EXTENSION, relative(extSrc, from));
+        mkdirSync(dirname(to), { recursive: true });
+        copyFileSync(from, to);
+    }
     await build({
         ...common,
         entryPoints: Object.fromEntries(Object.entries(EXTENSION_ENTRIES).map(([out, entry]) => [out, join(extSrc, entry)])),
