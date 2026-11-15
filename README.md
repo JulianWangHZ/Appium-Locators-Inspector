@@ -66,13 +66,16 @@ https://github.com/user-attachments/assets/c992b6ef-2318-42ab-8d90-824c9413fa41
 
 ## Installation
 
-**1. Load the extension**
+**1. Build and load the extension**
 
 ```bash
 git clone https://github.com/JulianWangHZ/Appium-Locators-Inspector.git
+cd Appium-Locators-Inspector
+npm install
+npm run build
 ```
 
-Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `extension/` folder.
+Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `dist/extension/` folder.
 
 **2. Install the local companion**
 
@@ -160,6 +163,22 @@ Chrome Extension  ──native messaging──▶  Native Host (launcher)
 - **Backend** — a local Node server that drives Appium, streams the screen, and returns the page source.
 - **Appium** — performs the actual taps, gestures, and element queries on the device.
 
+The backend listens on `127.0.0.1` only and accepts requests from extension pages, not from web pages.
+
+### Source layout
+
+Everything is TypeScript, bundled with esbuild into `dist/`.
+
+```
+src/
+  shared/        types and helpers used by every part (protocol, FPS, validation)
+  extension/     Manifest V3 extension: background/, popup/, options/, logs/, inspector/, lib/
+  backend/       local server: HTTP routes, WebSocket stream, minimal WebDriver client
+  native-host/   launcher started by Chrome; supervises the backend and Appium
+tests/           unit, integration, end-to-end and UI parity tests
+scripts/         build, companion packaging, extension packaging
+```
+
 ## Troubleshooting
 
 | Issue | Fix |
@@ -169,6 +188,7 @@ Chrome Extension  ──native messaging──▶  Native Host (launcher)
 | Appium not found | `npm install -g appium` |
 | No Android devices | Run `adb devices`; enable USB debugging. |
 | No iOS simulators | Boot a simulator in Xcode (macOS only). |
+| iOS real device: WebDriverAgent signing fails | Export your Apple Developer Team ID before starting Chrome: `export APPLE_TEAM_ID=XXXXXXXXXX`. Simulators need no signing. |
 
 Logs are written to `~/.appium_locators_inspector/`.
 
@@ -177,8 +197,17 @@ Logs are written to `~/.appium_locators_inspector/`.
 Contributions are welcome! Please open an issue to discuss significant changes first.
 
 1. Fork the repo and create a feature branch.
-2. Make your changes — the extension loads unpacked, so edit and reload; there's no build step.
-3. Open a pull request with a clear description.
+2. Run `npm install`, then `npm run build`, and load `dist/extension/` unpacked.
+3. After each change, run `npm run build` again and reload the extension.
+4. Run `npm run typecheck` and `npm test` (with `--coverage` for the coverage report).
+5. Open a pull request with a clear description.
+
+| Command | What it does |
+| --- | --- |
+| `npm run build` | Builds `dist/extension`, `dist/backend`, `dist/native-host` and the bundled companion zip. |
+| `npm run backend` | Builds, then runs the backend on its own (`PORT`, `APPIUM_PORT` env vars). |
+| `npm run package:extension` | Builds, then zips `dist/extension` for the Chrome Web Store. |
+| `npm test` | Runs all tests, including UI parity tests against the pre-TypeScript pages in `tests/legacy/`. |
 
 ## Acknowledgements
 
