@@ -91,6 +91,7 @@ function createChrome(opts: PageOptions, page: { runtimeMessages: any[] }, windo
             id: 'testextensionidaaaaaaaaaaaaaaaa',
             lastError: undefined,
             getURL: (p: string) => `chrome-extension://testext/${p}`,
+            getManifest: () => ({ version: '1.0.0' }),
             onMessage: { addListener: (fn: any) => messageListeners.push(fn) },
             openOptionsPage: () => page.runtimeMessages.push({ type: '__openOptionsPage' }),
             sendMessage(msg: unknown, cb?: (r: unknown) => void) {
@@ -250,10 +251,11 @@ export function normalizeHtml(html: string): string {
  * the legacy page wrote data-copy-text unescaped, so values with `"` broke the markup.
  * The tests check data-copy-text on the new page separately.
  */
-export function snapshot(page: Page, selector = 'body'): string {
+export function snapshot(page: Page, selector = 'body', exclude: string[] = []): string {
     const root = page.document.querySelector(selector);
     if (!root) return '';
     const clone = root.cloneNode(true) as Element;
+    exclude.forEach((sel) => clone.querySelectorAll(sel).forEach((el) => el.remove()));
     clone.querySelectorAll('.copy-btn').forEach((el) => {
         for (const name of el.getAttributeNames()) {
             if (name !== 'class' && name !== 'data-locator-index' && name !== 'style') el.removeAttribute(name);

@@ -18,8 +18,9 @@ information, no browsing activity, no analytics, and no telemetry.
 
 All functionality is local:
 
-- The extension communicates with a small companion application installed on your own
-  computer via Chrome native messaging.
+- The extension communicates with a small companion application running on your own
+  computer (started with `npx appium-locators-inspector`, or by Chrome via native
+  messaging), over `localhost` only.
 - That companion drives a local [Appium](https://appium.io/) server (on `localhost`) to
   read the connected device's screen and UI hierarchy and to perform taps and gestures.
 - Locators, recorded steps, and generated test code are produced on your machine and are

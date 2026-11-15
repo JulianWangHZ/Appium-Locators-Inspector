@@ -66,7 +66,12 @@ https://github.com/user-attachments/assets/c992b6ef-2318-42ab-8d90-824c9413fa41
 
 ## Installation
 
-**1. Build and load the extension**
+**1. Install the extension**
+
+Install it from the [Chrome Web Store](https://chromewebstore.google.com/detail/appium-locators-inspector/annejeomdlkidljonmpmhcdnekkadjfb).
+
+<details>
+<summary>Or build it from source</summary>
 
 ```bash
 git clone https://github.com/JulianWangHZ/Appium-Locators-Inspector.git
@@ -77,18 +82,22 @@ npm run build
 
 Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `dist/extension/` folder.
 
-**2. Install the local companion**
+</details>
 
-- Click the extension icon → **Settings** (gear) → **Setup**.
-- Download the auto-setup installer and run it — it installs the local backend and registers the native messaging host.
-- Reload the extension.
+**2. Start the local companion**
 
-That's it. The companion runs the backend locally and talks to Appium for you.
+```bash
+npx appium-locators-inspector
+```
+
+Keep the terminal open while you inspect; press Ctrl+C to stop. It starts the local backend, and Appium too if it isn't already running. The popup picks it up within a few seconds.
+
+Prefer a button? Run `npx appium-locators-inspector setup` once and reload the extension. After that, **Start servers** in the popup starts the companion for you. `npx appium-locators-inspector uninstall` undoes it.
 
 ## Getting Started
 
-1. Click the toolbar icon to open the popup.
-2. **Start servers** → pick a **platform** → pick a **device / simulator** → **Connect**.
+1. Run `npx appium-locators-inspector`, then click the toolbar icon to open the popup.
+2. Make sure the servers show **Running** → pick a **platform** → pick a **device / simulator** → **Connect**.
 3. The **Inspector** opens: the device mirror in the middle, the **Page Source** tree on the left, **Element Details** on the right.
 4. **Tap any element** to see its attributes and ranked locators. Copy the **Recommended** one, or **Copy as** Java / Python / TypeScript.
 5. Switch to the **Record** tab: tap an element, then choose an action (Click, Double tap, Swipe, Type…) or an assertion. Steps appear live.
@@ -149,17 +158,18 @@ Each row shows a version or path, so you know exactly what's missing.
 Everything runs locally — the extension never talks to a remote server.
 
 ```
-Chrome Extension  ──native messaging──▶  Native Host (launcher)
+Chrome Extension                     npx appium-locators-inspector
+      │                                (or the native host, after `setup`)
       │                                        │
-      │                                        ▼
- Inspector UI                          Local Backend  (:8765)
-      ▲                                        │
-      │        screen + page source            ▼
-      └──────────────────────────────  Appium  (:4723)  ──▶  Device / Simulator
+ Inspector UI  ◀── screen + page source ──  Local Backend  (:8765)
+                                               │
+                                               ▼
+                                       Appium  (:4723)  ──▶  Device / Simulator
 ```
 
 - **Extension** — the UI (popup, inspector, settings), Manifest V3.
-- **Native host** — launched by Chrome; starts and supervises the backend.
+- **Companion** — the npm package `appium-locators-inspector`: the backend plus a CLI that starts it (and Appium) in your terminal.
+- **Native host** — optional; registered by `setup` so Chrome can start the companion from the popup.
 - **Backend** — a local Node server that drives Appium, streams the screen, and returns the page source.
 - **Appium** — performs the actual taps, gestures, and element queries on the device.
 
@@ -175,22 +185,25 @@ src/
   extension/     Manifest V3 extension: background/, popup/, options/, logs/, inspector/, lib/
   backend/       local server: HTTP routes, WebSocket stream, minimal WebDriver client
   native-host/   launcher started by Chrome; supervises the backend and Appium
+  cli/           `npx appium-locators-inspector`: start, setup, uninstall
 tests/           unit, integration, end-to-end and UI parity tests
-scripts/         build, companion packaging, extension packaging
+scripts/         build (dist/extension, dist/npm) and extension packaging
 ```
 
 ## Troubleshooting
 
 | Issue | Fix |
 | --- | --- |
-| "Native messaging host not found" | Re-run the auto-setup installer, then reload the extension. |
-| Servers won't start | Check the logs in the popup, and make sure Node.js is installed. |
+| Popup says the companion isn't running | Run `npx appium-locators-inspector` and keep the terminal open. |
+| "Native messaging host not found" | Only needed for the popup's Start button: run `npx appium-locators-inspector setup`, then reload the extension. |
+| Port 8765 already in use | Another companion is running. Stop it, or use `--port` and set the same port in Settings. |
+| Appium installed somewhere unusual | Set `APPIUM_PATH` to the Appium binary. Appium's log is in `~/.appium_locators_inspector/appium.log` (or use `--verbose`). |
 | Appium not found | `npm install -g appium` |
 | No Android devices | Run `adb devices`; enable USB debugging. |
 | No iOS simulators | Boot a simulator in Xcode (macOS only). |
-| iOS real device: WebDriverAgent signing fails | Export your Apple Developer Team ID before starting Chrome: `export APPLE_TEAM_ID=XXXXXXXXXX`. Simulators need no signing. |
+| iOS real device: WebDriverAgent signing fails | Export your Apple Developer Team ID before starting the companion: `export APPLE_TEAM_ID=XXXXXXXXXX`. Simulators need no signing. |
 
-Logs are written to `~/.appium_locators_inspector/`.
+The companion logs to its terminal; when started from the popup, logs go to `~/.appium_locators_inspector/`.
 
 ## Contributing
 
@@ -204,9 +217,11 @@ Contributions are welcome! Please open an issue to discuss significant changes f
 
 | Command | What it does |
 | --- | --- |
-| `npm run build` | Builds `dist/extension`, `dist/backend`, `dist/native-host` and the bundled companion zip. |
-| `npm run backend` | Builds, then runs the backend on its own (`PORT`, `APPIUM_PORT` env vars). |
+| `npm run build` | Builds `dist/extension` (Chrome) and `dist/npm` (the companion package). |
+| `npm run companion` | Builds, then runs the companion from `dist/npm` (same as the npx command). |
+| `npm run backend` | Builds, then runs only the backend (`PORT`, `APPIUM_PORT` env vars). |
 | `npm run package:extension` | Builds, then zips `dist/extension` for the Chrome Web Store. |
+| `npm run publish:companion` | Builds, then publishes `dist/npm` to npm (needs `npm login`). |
 | `npm test` | Runs all tests, including UI parity tests against the pre-TypeScript pages in `tests/legacy/`. |
 
 ## Acknowledgements

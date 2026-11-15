@@ -147,32 +147,6 @@
         .prereq-item strong { display: block; margin-bottom: 5px; font-size: 13px; }
         .prereq-item span { color: var(--color-warm-gray); font-size: 12px; }
 
-        /* Install platform pills */
-        .platform-tabs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; background: var(--color-stone-canvas); border: 1px solid var(--color-stone-border); border-radius: 9999px; }
-
-        .tab-btn {
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 9999px;
-            padding: 6px 16px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: var(--font-body);
-            color: var(--color-warm-gray);
-            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-        }
-
-        .tab-btn.active {
-            background: var(--color-pure-white);
-            color: var(--color-ink-black);
-            border-color: var(--color-stone-border);
-            box-shadow: var(--shadow-subtle);
-        }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
         code {
             background: var(--color-stone-canvas);
             border: 1px solid var(--color-stone-border);
@@ -221,7 +195,10 @@
 
         .btn-secondary:hover { background: var(--color-pure-white); border-color: var(--color-stone-muted); }
 
-        .download-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        /* Copyable commands */
+        .cmd-row { display: flex; gap: 10px; align-items: center; margin: 8px 0 6px; }
+        .cmd-row pre { flex: 1; margin: 0; }
+        .cmd-note { margin: 0 0 4px; color: var(--color-warm-gray); font-size: 13px; }
 
         /* Next-step hint rows (no numbered circles, no side bar) */
         .hint-row { display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; border-top: 1px solid var(--color-stone-border); }
@@ -277,7 +254,6 @@
 
         /* Environment check */
         .check-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
-        #download-status { font-size: 12px; color: var(--color-cyan-edge); margin-top: 10px; }
         #check-result { margin-top: 16px; }
         .check-summary { font-weight: 500; margin-bottom: 10px; }
         .check-summary.ok { color: var(--color-cyan-edge); }
@@ -349,7 +325,7 @@
             <!-- Setup -->
             <section class="settings-pane active" id="pane-setup">
                 <h1 class="pane-title">Setup</h1>
-                <p class="pane-lead">Welcome! The extension talks to your devices through a small local companion. Install the prerequisites below, then run the one-time auto-setup — you'll only do this once.</p>
+                <p class="pane-lead">Welcome! The extension talks to your devices through a small local companion. Install the prerequisites below, then start the companion with one command.</p>
 
                 <h3>Prerequisites</h3>
                 <div class="prereq-grid">
@@ -361,31 +337,24 @@
                     <div class="prereq-item"><strong>Xcode (iOS/macOS)</strong><span>iOS simulator support<br>From the Mac App Store</span></div>
                 </div>
 
-                <h3>Install the companion</h3>
-                <div class="platform-tabs">
-                    <button class="tab-btn active" data-tab="mac" type="button">macOS / Linux</button>
-                    <button class="tab-btn" data-tab="windows" type="button">Windows</button>
+                <h3>Start the companion</h3>
+                <p class="cmd-note">Run this in a terminal and keep it open while you inspect. Press Ctrl+C to stop it.</p>
+                <div class="cmd-row">
+                    <pre><code id="cmd-start">npx appium-locators-inspector</code></pre>
+                    <button class="btn btn-secondary cmd-copy" data-copy="cmd-start" type="button">Copy</button>
                 </div>
-                <div id="tab-mac" class="tab-content active">
-                    <div class="download-group"><button class="btn" id="download-mac" type="button">Download auto-setup</button></div>
-                    <pre><code>cd ~/Downloads
-bash install_appium_locators_inspector.sh</code></pre>
+
+                <h3>Optional: start it from the popup</h3>
+                <p class="cmd-note">Run this once, then reload the extension. After that, <strong>Start servers</strong> in the popup starts the companion for you.</p>
+                <div class="cmd-row">
+                    <pre><code id="cmd-setup">npx appium-locators-inspector setup</code></pre>
+                    <button class="btn btn-secondary cmd-copy" data-copy="cmd-setup" type="button">Copy</button>
                 </div>
-                <div id="tab-windows" class="tab-content">
-                    <div class="download-group"><button class="btn" id="download-windows" type="button">Download auto-setup</button></div>
-                    <pre><code>cd %USERPROFILE%\Downloads
-install_appium_locators_inspector.bat</code></pre>
-                </div>
-                <div id="download-status"></div>
 
                 <h3>Then</h3>
                 <div class="hint-row">
-                    <span class="hint-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg></span>
-                    <div><strong>Reload the extension</strong><p>Open <code>chrome://extensions</code>, find Appium Locators Inspector, and hit reload so it picks up the companion.</p></div>
-                </div>
-                <div class="hint-row">
                     <span class="hint-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></span>
-                    <div><strong>Connect a device</strong><p>Open the popup, start your servers, pick a platform and device — and you're inspecting.</p></div>
+                    <div><strong>Connect a device</strong><p>Open the popup. It finds the running companion within a few seconds — pick a platform and device, and you're inspecting.</p></div>
                 </div>
             </section>
 
@@ -446,14 +415,15 @@ install_appium_locators_inspector.bat</code></pre>
             <!-- Help -->
             <section class="settings-pane" id="pane-help">
                 <h1 class="pane-title">Troubleshooting</h1>
-                <p class="pane-lead">Something not working? Here are the fixes for the issues people hit most. If you're still stuck, the logs at <code>~/.appium_locators_inspector/native-host.log</code> usually tell the story.</p>
+                <p class="pane-lead">Something not working? Here are fixes for the issues people hit most. If you're still stuck, the companion's terminal output (or <code>~/.appium_locators_inspector/native-host.log</code> when started from the popup) usually tells the story.</p>
 
                 <div class="group">
                     <table>
                         <thead><tr><th>Issue</th><th>Solution</th></tr></thead>
                         <tbody>
-                            <tr><td>"Native messaging host not found"</td><td>Re-run the auto-setup installer, then reload the extension.</td></tr>
-                            <tr><td>Servers won't start</td><td>Check logs in the popup. Ensure Node.js is installed.</td></tr>
+                            <tr><td>Popup says the companion isn't running</td><td>Run <code>npx appium-locators-inspector</code> and keep the terminal open.</td></tr>
+                            <tr><td>"Native messaging host not found"</td><td>Only needed for the popup's Start button: run <code>npx appium-locators-inspector setup</code>, then reload the extension.</td></tr>
+                            <tr><td>Port 8765 already in use</td><td>Another companion is running. Stop it, or start with <code>--port</code> and set the same port under Settings.</td></tr>
                             <tr><td>Appium not found</td><td><code>npm install -g appium</code></td></tr>
                             <tr><td>No Android devices</td><td>Run <code>adb devices</code> in a terminal. Enable USB debugging.</td></tr>
                             <tr><td>No iOS simulators</td><td>Boot a simulator in Xcode. macOS only.</td></tr>

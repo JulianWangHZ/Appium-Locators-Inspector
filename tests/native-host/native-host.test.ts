@@ -62,6 +62,15 @@ describe('diagnoseSetup', () => {
         expect(diagnoseSetup(dir, 'other').extensionAllowed).toBe(false);
     });
 
+    it('treats a bundled backend without dependencies as complete', () => {
+        dir = mkdtempSync(join(tmpdir(), 'ali-diag-'));
+        mkdirSync(join(dir, 'backend'), { recursive: true });
+        writeFileSync(join(dir, 'backend', 'package.json'), JSON.stringify({ version: '1.2.0' }));
+        expect(diagnoseSetup(dir, 'abc').dependenciesInstalled).toBe(true);
+        writeFileSync(join(dir, 'backend', 'package.json'), JSON.stringify({ version: '1.1.0', dependencies: { express: '4' } }));
+        expect(diagnoseSetup(dir, 'abc').dependenciesInstalled).toBe(false);
+    });
+
     it('reports a missing install', () => {
         dir = mkdtempSync(join(tmpdir(), 'ali-diag-'));
         expect(diagnoseSetup(dir, 'abc')).toMatchObject({ backendInstalled: false, manifestInstalled: false, extensionAllowed: false, companionVersion: null });

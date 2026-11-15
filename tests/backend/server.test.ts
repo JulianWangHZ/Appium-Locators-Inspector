@@ -7,6 +7,7 @@ import { ScreenMirror } from '../../src/backend/screen-mirror.js';
 import { close, fakeAppium, listen } from './helpers.js';
 
 let server: Server;
+let shutdownCalls = 0;
 let base: string;
 let appium: Awaited<ReturnType<typeof fakeAppium>>;
 
@@ -19,7 +20,7 @@ beforeEach(async () => {
         'DELETE /session/s1': () => ({ value: null })
     });
     const mirror = new ScreenMirror(async () => 'BASE64PNG');
-    server = createBackendServer({ sessions: new AppiumSessions(appium.url), mirror, port: 0, defaultFps: 30, heartbeatMs: 60_000 });
+    server = createBackendServer({ sessions: new AppiumSessions(appium.url), mirror, port: 0, defaultFps: 30, heartbeatMs: 60_000, appiumUrl: appium.url, onShutdown: () => { shutdownCalls++; } });
     const port = await listen(server);
     base = `http://127.0.0.1:${port}`;
 });

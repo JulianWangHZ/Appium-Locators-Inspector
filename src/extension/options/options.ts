@@ -2,26 +2,36 @@ import { sendToBackground, type SetupCheckResponse } from '../lib/messages.js';
 import { requireById } from '../lib/html.js';
 import { DEFAULT_SETTINGS, loadSettings, normalizeFpsLimit } from '../lib/settings.js';
 import { loadTheme, normalizeTheme, saveTheme, setDocumentTheme, type Theme } from '../lib/theme.js';
-import { backendChecks, companionChecks, renderChecks } from './environment-check.js';
-import { buildInstaller, bytesToBase64, type CompanionRelease } from './installer-builder.js';
+import { copyText } from '../lib/clipboard.js';
+import { backendChecks, companionChecks, renderChecks, setupCommandFor } from './environment-check.js';
 
-const DOWNLOAD_STATUS_MS = 6000;
 const SAVED_FEEDBACK_MS = 1500;
 
 document.addEventListener('DOMContentLoaded', () => {
+    const version = document.querySelector('.rail-brand .ver');
+    if (version) version.textContent = `v${chrome.runtime.getManifest().version}`;
     void fillSettingsForm();
     void loadTheme().then(applyTheme);
     setupRailNav();
-    setupTabs();
     setupThemeToggle();
+    setupCommands();
     requireById('save-btn').addEventListener('click', saveSettings);
-    document.getElementById('download-mac')?.addEventListener('click', () => void downloadInstaller('install_host.sh', 'install_appium_locators_inspector.sh'));
-    document.getElementById('download-windows')?.addEventListener('click', () => void downloadInstaller('install_host.bat', 'install_appium_locators_inspector.bat'));
     document.getElementById('check-backend-btn')?.addEventListener('click', () => void runEnvironmentCheck());
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes.theme) applyTheme(normalizeTheme(changes.theme.newValue));
     });
 });
+
+function setupCommands(): void {
+    const setupCode = document.getElementById('cmd-setup');
+    if (setupCode) setupCode.textContent = setupCommandFor(chrome.runtime.id);
+    document.querySelectorAll<HTMLElement>('.cmd-copy').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const text = document.getElementById(btn.dataset.copy ?? '')?.textContent;
+            if (text) void copyText(text, btn);
+        });
+    });
+}
 
 function applyTheme(theme: Theme): void {
     setDocumentTheme(theme);
@@ -55,80 +65,19 @@ function setupRailNav(): void {
     });
 }
 
-function setupTabs(): void {
-    const tabButtons = Array.from(document.querySelectorAll<HTMLElement>('.tab-btn'));
-    tabButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-            tabButtons.forEach((b) => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(`tab-${btn.dataset.tab}`)?.classList.add('active');
-        });
-    });
-
-    // Show the installer for this OS first.
-    const uaPlatform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform;
-    if (uaPlatform === 'Windows' || navigator.platform?.includes('Win')) {
-        document.querySelector<HTMLElement>('[data-tab="windows"]')?.click();
-    }
-}
-
-async function fetchExtensionFile(path: string): Promise<Response> {
-    const response = await fetch(chrome.runtime.getURL(path));
-    if (!response.ok) throw new Error(`Missing extension file: ${path}`);
-    return response;
-}
-
-async function downloadInstaller(filename: string, downloadName: string): Promise<void> {
-    const status = document.getElementById('download-status');
-    try {
-        const release = (await (await fetchExtensionFile('installers/companion-release.json')).json()) as CompanionRelease;
-        const [template, launcherJs, archive] = await Promise.all([
-            fetchExtensionFile(`installers/${filename}`).then((r) => r.text()),
-            fetchExtensionFile('installers/launcher.js').then((r) => r.text()),
-            fetchExtensionFile(release.extensionPath || `installers/${release.filename}`).then((r) => r.arrayBuffer())
-        ]);
-        const content = buildInstaller({
-            filename,
-            template,
-            launcherJs,
-            companionB64: bytesToBase64(new Uint8Array(archive)),
-            release,
-            extensionId: chrome.runtime.id
-        });
-        saveFile(content, downloadName);
-        if (status) {
-            status.textContent = `Downloaded ${downloadName} — run it to complete setup.`;
-            setTimeout(() => { status.textContent = ''; }, DOWNLOAD_STATUS_MS);
-        }
-    } catch (error) {
-        console.error('Installer download failed:', error);
-        if (status) status.textContent = 'Download failed. Try again.';
-    }
-}
-
-function saveFile(content: string, name: string): void {
-    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-}
-
 async function runEnvironmentCheck(): Promise<void> {
     const resultEl = requireById('check-result');
     resultEl.innerHTML = '<div class="check-summary muted">Running preflight…</div>';
     const port = requireById<HTMLInputElement>('backend-port').value || DEFAULT_SETTINGS.backendPort;
 
-    const setup: SetupCheckResponse = await sendToBackground<SetupCheckResponse>({ type: 'check-setup' })
-        .then((r) => r || { success: false, nativeHost: false, error: 'No setup response' })
-        .catch((error: Error) => ({ success: false, nativeHost: false, error: error.message }));
-
-    const checks = [...companionChecks(setup, chrome.runtime.id), ...(await backendChecks(port))];
-    resultEl.innerHTML = renderChecks(checks);
+    const [setup, backend] = await Promise.all([
+        sendToBackground<SetupCheckResponse>({ type: 'check-setup' })
+            .then((r) => r || { success: false, nativeHost: false, error: 'No setup response' })
+            .catch((error: Error) => ({ success: false, nativeHost: false, error: error.message })),
+        backendChecks(port)
+    ]);
+    const backendRunning = backend.some((c) => c.name === 'Backend server' && c.ok);
+    resultEl.innerHTML = renderChecks([...companionChecks(setup, chrome.runtime.id, backendRunning), ...backend]);
 }
 
 async function fillSettingsForm(): Promise<void> {

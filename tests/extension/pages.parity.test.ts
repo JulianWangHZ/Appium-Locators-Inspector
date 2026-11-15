@@ -10,9 +10,9 @@ function firstDifference(a: string, b: string): string {
     return `at ${i}:\n  legacy: …${a.slice(Math.max(0, i - 120), i + 160)}…\n  modern: …${b.slice(Math.max(0, i - 120), i + 160)}…`;
 }
 
-function expectSameDom(legacy: Page, modern: Page, step: string, selector = 'body'): void {
-    const want = snapshot(legacy, selector);
-    const got = snapshot(modern, selector);
+function expectSameDom(legacy: Page, modern: Page, step: string, selector = 'body', exclude: string[] = []): void {
+    const want = snapshot(legacy, selector, exclude);
+    const got = snapshot(modern, selector, exclude);
     if (got !== want) expect.fail(`${step} differs ${firstDifference(want, got)}`);
 }
 
@@ -29,13 +29,13 @@ async function openBoth(opts: PageOptions, legacyFiles: string[], modernEntries:
 }
 
 /* ── Popup ─────────────────────────────────────────── */
-function popupOptions(state: { backend: boolean; appium: boolean; serverReply?: unknown; devicesReply?: unknown }): PageOptions {
+function popupOptions(state: { backend: boolean; appium: boolean; serverReply?: unknown; devicesReply?: unknown; nativeBackend?: boolean }): PageOptions {
     return {
         html: readExtensionFile('popup/popup.html'),
         sync: { backendPort: 8765, theme: 'dark' },
         onMessage: (msg) => {
             switch (msg.type) {
-                case 'get-status': return { backend: state.backend, appium: state.appium };
+                case 'get-status': return state.nativeBackend === false ? { backend: false, appium: false } : { backend: state.backend, appium: state.appium };
                 case 'request-logs': return { success: true, logs: [{ message: 'old log', level: 'info' }, { message: 'old error', level: 'error' }] };
                 case 'start-server':
                 case 'stop-server': return state.serverReply;
@@ -44,7 +44,8 @@ function popupOptions(state: { backend: boolean; appium: boolean; serverReply?: 
             }
         },
         fetch: (url) => {
-            if (url.endsWith('/health')) return { status: 'ok', adbAvailable: true, iosToolsAvailable: false };
+            if (url.endsWith('/health')) return state.backend ? { status: 'ok', adbAvailable: true, iosToolsAvailable: false } : new Error('refused');
+            if (url.endsWith('/api/shutdown')) return { success: true };
             if (url.includes('/api/devices/')) return state.devicesReply;
             return { success: true };
         }
@@ -92,24 +93,57 @@ describe('popup UI parity', () => {
         await both(pages, (p) => p.emitRuntime({ type: 'server-start-error', errors: [{ server: 'Appium', error: 'Appium is not installed', code: 'APPIUM_NOT_FOUND' }] }));
         expectSameDom(legacy, modern, 'start error modal');
         await both(pages, (p) => click(p, p.document.getElementById('error-modal')));
-        await both(pages, (p) => p.emitRuntime({ type: 'server-start-error', errors: [{ server: 'Local Companion', error: 'x', code: 'COMPANION_SETUP_REQUIRED' }] }));
-        expectSameDom(legacy, modern, 'setup modal');
-        await both(pages, (p) => click(p, p.document.getElementById('error-help-btn')));
-        expect(modern.runtimeMessages.filter((m) => m.type === '__openOptionsPage').length).toBe(1);
-    });
-
-    it('handles start failures with the setup modal', async () => {
-        const reply = { success: false, code: 'COMPANION_SETUP_REQUIRED', error: 'Install the local companion once to start servers and connect your devices.' };
-        const pages = await openBoth(popupOptions({ backend: false, appium: false, serverReply: reply }), ['popup.js'], ['popup/popup.ts']);
-        expectSameDom(pages[0], pages[1], 'stopped');
-        await both(pages, (p) => click(p, p.document.getElementById('server-btn')));
-        expectSameDom(pages[0], pages[1], 'start failed');
+        expectSameDom(legacy, modern, 'modal closed');
     });
 
     it('reports a non-setup start failure as a notice', async () => {
         const pages = await openBoth(popupOptions({ backend: false, appium: false, serverReply: { success: false, error: 'port busy' } }), ['popup.js'], ['popup/popup.ts']);
+        expectSameDom(pages[0], pages[1], 'stopped');
         await both(pages, (p) => click(p, p.document.getElementById('server-btn')));
         expectSameDom(pages[0], pages[1], 'start failed notice');
+    });
+});
+
+/* ── Popup: npx companion (new in 1.2.0, no legacy equivalent) ── */
+describe('popup with the npx companion', () => {
+    const setupReply = { success: false, code: 'COMPANION_SETUP_REQUIRED', error: 'Start the local companion with: npx appium-locators-inspector' };
+
+    async function openModern(state: Parameters<typeof popupOptions>[0]): Promise<Page> {
+        const page = await openPage(popupOptions(state), { modern: ['popup/popup.ts'] });
+        open.push(page);
+        return page;
+    }
+
+    it('shows the npx command with a Copy button when nothing is running', async () => {
+        const page = await openModern({ backend: false, appium: false, serverReply: setupReply });
+        click(page, page.document.getElementById('server-btn'));
+        await page.settle();
+        const modal = page.document.getElementById('error-modal')!;
+        expect(modal.classList.contains('hidden')).toBe(false);
+        expect(page.document.getElementById('error-modal-title')!.textContent).toBe('Start the companion');
+        expect(modal.querySelector('.cmd-code')!.textContent).toBe('npx appium-locators-inspector');
+        click(page, modal.querySelector('.cmd-row button'));
+        await page.settle();
+        expect(page.clipboard).toEqual(['npx appium-locators-inspector']);
+        click(page, page.document.getElementById('error-help-btn'));
+        expect(page.runtimeMessages.some((m) => m.type === '__openOptionsPage')).toBe(true);
+    });
+
+    it('detects a companion started in a terminal and stops it through the backend', async () => {
+        const page = await openModern({ backend: true, appium: false, nativeBackend: false, devicesReply: { success: true, devices: [] } });
+        expect(page.document.getElementById('backend-state')!.textContent).toBe('Running');
+        expect(page.document.getElementById('step-platform')!.dataset.state).toBe('active');
+        expect(page.document.getElementById('server-btn')!.textContent).toBe('Stop servers');
+
+        click(page, page.document.getElementById('server-btn'));
+        await page.settle();
+        expect(page.fetchCalls.some((c) => c.url.endsWith('/api/shutdown') && c.method === 'POST')).toBe(true);
+        expect(page.runtimeMessages.some((m) => m.type === 'stop-server')).toBe(false);
+    });
+
+    it('shows the extension version in the footer', async () => {
+        const page = await openModern({ backend: false, appium: false });
+        expect(page.document.querySelector('.appfoot .version')!.textContent).toBe('v1.0.0');
     });
 });
 
@@ -139,21 +173,13 @@ describe('logs page UI parity', () => {
 });
 
 /* ── Options page ──────────────────────────────────── */
-const FAKE_ZIP = Uint8Array.from({ length: 70_000 }, (_, i) => (i * 37 + 11) % 256);
-const LAUNCHER = '#!/usr/bin/env node\n"use strict";\nconsole.log("launcher");\n';
-const RELEASE = { version: '1.1.0', filename: 'companion.zip', url: '', extensionPath: 'installers/companion.zip', sha256: 'abc123' };
+/** The Setup and Help panes changed on purpose in 1.2.0 (npx companion); the rest must match. */
+const CHANGED_PANES = ['#pane-setup', '#pane-help'];
 
 function optionsPageOptions(diagnosticsReply: unknown): PageOptions {
     return {
         html: readExtensionFile('options.html'),
         sync: { backendPort: '9999', appiumUrl: 'http://localhost:4800', fpsLimit: 40 },
-        files: {
-            'installers/install_host.sh': readExtensionFile('installers/install_host.sh'),
-            'installers/install_host.bat': readExtensionFile('installers/install_host.bat'),
-            'installers/launcher.js': LAUNCHER,
-            'installers/companion-release.json': JSON.stringify(RELEASE),
-            'installers/companion.zip': FAKE_ZIP
-        },
         onMessage: (msg) => (msg.type === 'check-setup'
             ? {
                 success: true,
@@ -175,19 +201,15 @@ describe('options page UI parity', () => {
         const [legacy, modern] = pages;
         const values = (p: Page) => ['backend-port', 'appium-url', 'fps-limit'].map((id) => (p.document.getElementById(id) as HTMLInputElement).value);
         expect(values(modern)).toEqual(values(legacy));
-        expectSameDom(legacy, modern, 'initial');
+        expectSameDom(legacy, modern, 'initial', 'body', CHANGED_PANES);
 
         for (const item of Array.from(legacy.document.querySelectorAll<HTMLElement>('.rail-item'))) {
             await both(pages, (p) => click(p, p.document.querySelector(`.rail-item[data-pane="${item.dataset.pane}"]`)));
-            expectSameDom(legacy, modern, `rail ${item.dataset.pane}`);
-        }
-        for (const tab of ['windows', 'mac']) {
-            await both(pages, (p) => click(p, p.document.querySelector(`.tab-btn[data-tab="${tab}"]`)));
-            expectSameDom(legacy, modern, `tab ${tab}`);
+            expectSameDom(legacy, modern, `rail ${item.dataset.pane}`, 'body', CHANGED_PANES);
         }
         for (const theme of ['dark', 'light', 'dark']) {
             await both(pages, (p) => click(p, p.document.querySelector(`.theme-option[data-theme="${theme}"]`)));
-            expectSameDom(legacy, modern, `theme ${theme}`);
+            expectSameDom(legacy, modern, `theme ${theme}`, 'body', CHANGED_PANES);
         }
 
         await both(pages, (p) => {
@@ -195,38 +217,54 @@ describe('options page UI parity', () => {
             (p.document.getElementById('fps-limit') as HTMLInputElement).value = '0';
             click(p, p.document.getElementById('save-btn'));
         });
-        expectSameDom(legacy, modern, 'saved');
+        expectSameDom(legacy, modern, 'saved', 'body', CHANGED_PANES);
         expect(values(modern)).toEqual(values(legacy));
         const stored = (p: Page) => p.window.chrome.storage.sync.get({ backendPort: null, appiumUrl: null, fpsLimit: null, theme: null });
         expect(await stored(modern)).toEqual(await stored(legacy));
     });
+});
 
-    it('renders the environment check identically', async () => {
+describe('options page with the npx companion', () => {
+    async function openModern(diagnosticsReply: unknown, setupReply?: unknown): Promise<Page> {
+        const opts = optionsPageOptions(diagnosticsReply);
+        const page = await openPage(setupReply === undefined ? opts : { ...opts, onMessage: () => setupReply }, { modern: ['options/options.ts'] });
+        open.push(page);
+        return page;
+    }
+
+    it('shows copyable start and setup commands for this extension ID', async () => {
+        const page = await openModern({ success: true, checks: [] });
+        expect(page.document.getElementById('cmd-start')!.textContent).toBe('npx appium-locators-inspector');
+        expect(page.document.getElementById('cmd-setup')!.textContent).toBe('npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa');
+        for (const btn of Array.from(page.document.querySelectorAll('.cmd-copy'))) click(page, btn);
+        await page.settle();
+        expect(page.clipboard).toEqual(['npx appium-locators-inspector', 'npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa']);
+        expect(page.document.querySelector('.cmd-copy')!.textContent).toBe('Copied!');
+        expect(page.document.getElementById('download-mac')).toBeNull();
+        expect(page.document.querySelector('.rail-brand .ver')!.textContent).toBe('v1.0.0');
+    });
+
+    it('renders the environment check with npx guidance', async () => {
         const checks = [
             { name: 'Node.js', ok: true, detail: 'v26' },
-            { name: 'Appium drivers', ok: true, warn: true, detail: 'xcuitest' },
             { name: 'adb <sdk>', ok: false, warn: true, detail: 'not found & "missing"' },
-            { name: 'Java', ok: false, detail: 'not found' }
+            { name: 'Backend server', ok: true, detail: 'running on 8765' }
         ];
-        const pages = await openBoth(optionsPageOptions({ success: true, checks }), ['options.js'], ['options/options.ts']);
-        await both(pages, (p) => click(p, p.document.getElementById('check-backend-btn')), 20);
-        expectSameDom(pages[0], pages[1], 'environment check');
+        const page = await openModern({ success: true, checks }, { success: false, nativeHost: false, error: 'not registered' });
+        click(page, page.document.getElementById('check-backend-btn'));
+        await page.settle(20);
+        const text = page.document.getElementById('check-result')!.textContent!;
+        expect(text).toContain('All good');
+        expect(text).toContain('optional — run npx appium-locators-inspector setup to enable it');
+        expect(page.document.getElementById('check-result')!.innerHTML).toContain('adb &lt;sdk&gt;');
     });
 
-    it('reports a stopped backend identically', async () => {
-        const pages = await openBoth(optionsPageOptions(new Error('refused')), ['options.js'], ['options/options.ts']);
-        await both(pages, (p) => click(p, p.document.getElementById('check-backend-btn')), 20);
-        expectSameDom(pages[0], pages[1], 'backend down');
-    });
-
-    it.each([['install_host.sh', 'download-mac'], ['install_host.bat', 'download-windows']])('builds a byte-identical %s installer', async (_file, buttonId) => {
-        const pages = await openBoth(optionsPageOptions({ success: true, checks: [] }), ['options.js'], ['options/options.ts']);
-        await both(pages, (p) => click(p, p.document.getElementById(buttonId)), 20);
-        const [legacy, modern] = pages;
-        expect(modern.downloads).toHaveLength(1);
-        expect(modern.downloads[0]!.name).toBe(legacy.downloads[0]!.name);
-        expect(modern.downloads[0]!.content).toBe(legacy.downloads[0]!.content);
-        expect(modern.downloads[0]!.content).toContain('testextensionidaaaaaaaaaaaaaaaa');
-        expect(normalizeHtml(modern.document.getElementById('download-status')!.textContent!)).toBe(normalizeHtml(legacy.document.getElementById('download-status')!.textContent!));
+    it('asks to start the companion when the backend is down', async () => {
+        const page = await openModern(new Error('refused'), { success: false, nativeHost: false, error: 'not registered' });
+        click(page, page.document.getElementById('check-backend-btn'));
+        await page.settle(20);
+        const text = page.document.getElementById('check-result')!.textContent!;
+        expect(text).toContain('2 items need attention.');
+        expect(text).toContain('not running — run npx appium-locators-inspector');
     });
 });

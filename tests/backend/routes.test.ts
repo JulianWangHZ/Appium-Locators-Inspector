@@ -7,6 +7,7 @@ import { ScreenMirror } from '../../src/backend/screen-mirror.js';
 import { close, fakeAppium, listen } from './helpers.js';
 
 let server: Server;
+let shutdownCalls = 0;
 let base: string;
 let appium: Awaited<ReturnType<typeof fakeAppium>>;
 let sourceCalls = 0;
@@ -14,10 +15,12 @@ let sessionCount = 0;
 let captureFails = false;
 
 beforeEach(async () => {
+    shutdownCalls = 0;
     sourceCalls = 0;
     sessionCount = 0;
     captureFails = false;
     appium = await fakeAppium({
+        'GET /status': () => ({ value: { ready: true } }),
         'POST /session': () => ({ value: { sessionId: `s${++sessionCount}` } }),
         'GET /session/s1/source': () => (++sourceCalls === 1
             ? { status: 404, value: { error: 'invalid session id', message: 'gone' } }
@@ -36,7 +39,7 @@ beforeEach(async () => {
         if (captureFails) throw new Error('adb gone');
         return 'IMG';
     });
-    server = createBackendServer({ sessions: new AppiumSessions(appium.url), mirror, port: 4242, defaultFps: 30, heartbeatMs: 20 });
+    server = createBackendServer({ sessions: new AppiumSessions(appium.url), mirror, port: 4242, defaultFps: 30, heartbeatMs: 20, appiumUrl: appium.url, onShutdown: () => { shutdownCalls++; } });
     base = `http://127.0.0.1:${await listen(server)}`;
 });
 afterEach(async () => {
@@ -51,6 +54,14 @@ const post = async (path: string, body: unknown) => {
 const createIos = () => post('/api/session/create', { deviceInfo: { id: 'SIM-1', platform: 'ios', name: 'iPhone', version: '27.2' } });
 
 describe('REST routes', () => {
+    it('reports Appium availability in /health and shuts down on request', async () => {
+        const health = await (await fetch(`${base}/health`)).json();
+        expect(health).toMatchObject({ status: 'ok', appiumAvailable: true });
+        expect((await post('/api/shutdown', {})).body).toEqual({ success: true });
+        await new Promise((r) => setImmediate(r));
+        expect(shutdownCalls).toBe(1);
+    });
+
     it('validates gesture, type and tap input', async () => {
         await createIos();
         expect((await post('/api/gesture', { deviceId: 'SIM-1' })).status).toBe(400);

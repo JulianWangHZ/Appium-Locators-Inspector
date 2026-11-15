@@ -8,7 +8,7 @@ export default defineConfig({
         coverage: {
             include: ["src/**"],
             // Type-only modules and process entry points (covered by e2e tests that spawn them).
-            exclude: ["src/**/types.ts", "src/shared/protocol.ts", "src/backend/server.ts", "src/native-host/launcher.ts"],
+            exclude: ["src/**/types.ts", "src/shared/protocol.ts", "src/backend/server.ts", "src/native-host/launcher.ts", "src/cli/index.ts"],
             thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 }
         }
     }

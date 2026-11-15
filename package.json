@@ -1,6 +1,6 @@
 {
     "name": "appium-locators-inspector",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "private": true,
     "description": "Chrome extension for identifying locators in Android/iOS apps using Appium",
     "type": "module",
@@ -10,10 +10,12 @@
     "scripts": {
         "build": "tsx scripts/build.ts",
         "package:extension": "npm run build && tsx scripts/package-extension.ts",
-        "backend": "npm run build && node dist/backend/server.js",
+        "backend": "npm run build && node dist/npm/backend/server.js",
         "typecheck": "tsc --noEmit",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "companion": "npm run build && node dist/npm/cli.js",
+        "publish:companion": "npm run build && npm publish ./dist/npm --access public"
     },
     "dependencies": {
         "express": "^4.21.2",
@@ -40,5 +42,10 @@
         "locator"
     ],
     "author": "Julian Wang",
-    "license": "MIT"
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JulianWangHZ/Appium-Locators-Inspector.git"
+    },
+    "homepage": "https://github.com/JulianWangHZ/Appium-Locators-Inspector#readme"
 }

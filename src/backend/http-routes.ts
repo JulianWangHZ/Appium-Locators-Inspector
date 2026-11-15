@@ -12,6 +12,20 @@ export interface RouteDeps {
     sessions: AppiumSessions;
     mirror: ScreenMirror;
     port: number;
+    appiumUrl: string;
+    /** Stops the process (the extension's "Stop servers" for a companion started with npx). */
+    onShutdown?: () => void;
+}
+
+const APPIUM_PROBE_TIMEOUT_MS = 1500;
+
+async function isAppiumUp(appiumUrl: string): Promise<boolean> {
+    try {
+        const res = await fetch(`${appiumUrl}/status`, { signal: AbortSignal.timeout(APPIUM_PROBE_TIMEOUT_MS) });
+        return res.ok;
+    } catch {
+        return false;
+    }
 }
 
 type Handler = (req: Request, res: Response) => Promise<unknown>;
@@ -65,12 +79,14 @@ export function parseDeviceInfo(value: unknown): DeviceInfo {
     };
 }
 
-export function createRoutes({ sessions, mirror, port }: RouteDeps): Router {
+export function createRoutes({ sessions, mirror, port, appiumUrl, onShutdown }: RouteDeps): Router {
     const router = express.Router();
 
     router.get('/health', route(async (_req, res) => {
-        const [adbAvailable, iosToolsAvailable] = await Promise.all([devices.isAdbAvailable(), devices.isIOSToolsAvailable()]);
-        res.json({ status: 'ok', timestamp: new Date().toISOString(), adbAvailable, iosToolsAvailable });
+        const [adbAvailable, iosToolsAvailable, appiumAvailable] = await Promise.all([
+            devices.isAdbAvailable(), devices.isIOSToolsAvailable(), isAppiumUp(appiumUrl)
+        ]);
+        res.json({ status: 'ok', timestamp: new Date().toISOString(), adbAvailable, iosToolsAvailable, appiumAvailable });
     }));
 
     router.get('/api/devices', route(async (_req, res) => {
@@ -150,6 +166,12 @@ export function createRoutes({ sessions, mirror, port }: RouteDeps): Router {
             direction: body.direction as SwipeDirection | undefined
         });
         res.json({ success: true, deviceId });
+    }));
+
+    router.post('/api/shutdown', route(async (_req, res) => {
+        if (!onShutdown) throw new BadRequest('Shutdown is not available');
+        res.json({ success: true });
+        setImmediate(onShutdown);
     }));
 
     router.get('/api/diagnostics', route(async (_req, res) => {

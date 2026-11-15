@@ -12,6 +12,8 @@ export interface AppDeps {
     port: number;
     defaultFps: number;
     heartbeatMs: number;
+    appiumUrl: string;
+    onShutdown?: () => void;
 }
 
 /** Express app + WebSocket server on one HTTP server (not yet listening). */

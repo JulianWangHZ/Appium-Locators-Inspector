@@ -5,8 +5,8 @@ import { appiumPortOf, backendPortOf } from '../../src/extension/lib/settings.js
 import { computeCoordinateScale, deviceRectOf, findElementAtPoint, parseAndroidBounds } from '../../src/extension/inspector/geometry.js';
 import { buildLocatorItems, getMatchingElements, isBrittleLocator, parseSimplePredicate, recommendedIndex } from '../../src/extension/inspector/locator-matching.js';
 import { stepStates } from '../../src/extension/popup/steps.js';
-import { applyInstallerTemplate, buildInstaller, embedLauncherForShell, splitBase64 } from '../../src/extension/options/installer-builder.js';
-import { renderChecks, companionChecks } from '../../src/extension/options/environment-check.js';
+import { renderChecks, companionChecks, setupCommandFor } from '../../src/extension/options/environment-check.js';
+import { combineStatus } from '../../src/extension/popup/status.js';
 import { LocatorGenerator } from '../../src/extension/lib/locator-generator.js';
 import { fixture } from '../legacy.js';
 
@@ -109,30 +109,6 @@ describe('popup steps', () => {
     ])('%j → %j', (flow, want) => expect(stepStates(flow)).toEqual(want));
 });
 
-describe('installer builder', () => {
-    const release = { version: '1.1.0', filename: 'c.zip', url: '', sha256: 'abc' };
-
-    it('fills template values', () => {
-        const out = applyInstallerTemplate('EXTENSION_ID="old"\nCOMPANION_EMBEDDED="0"\nV=__COMPANION_VERSION__ S=__COMPANION_SHA256__', 'newid', release, true);
-        expect(out).toBe('EXTENSION_ID="newid"\nCOMPANION_EMBEDDED="1"\nV=1.1.0 S=abc');
-    });
-
-    it('embeds code containing $ replacement patterns verbatim', () => {
-        const launcher = "const a = s.replace(/x/, \"$&$'$1\");\n";
-        expect(embedLauncherForShell('# __EMBEDDED_LAUNCHER_JS__', launcher)).toContain(launcher);
-    });
-
-    it('splits base64 into fixed-width lines', () => {
-        expect(splitBase64('a'.repeat(160))).toEqual(['a'.repeat(76), 'a'.repeat(76), 'a'.repeat(8)]);
-    });
-
-    it('converts batch installers to CRLF', () => {
-        const out = buildInstaller({ filename: 'x.bat', template: 'a\n:: __EMBEDDED_LAUNCHER_JS__\n:: __EMBEDDED_COMPANION_ZIP__\n', launcherJs: 'x', companionB64: 'QUJD', release, extensionId: 'id' });
-        expect(out).not.toMatch(/[^\r]\n/);
-        expect(out).toContain('echo.QUJD');
-    });
-});
-
 describe('environment check', () => {
     it('summarises failures and escapes details', () => {
         const html = renderChecks([{ name: '<x>', ok: false, detail: 'a & b' }, { name: 'ok', ok: true, detail: '' }]);
@@ -141,9 +117,30 @@ describe('environment check', () => {
         expect(html).toContain('a &amp; b');
     });
 
-    it('reports a missing companion', () => {
+    it('asks to start the companion when nothing runs', () => {
         expect(companionChecks({ success: false, nativeHost: false }, 'id')).toEqual([
-            { name: 'Companion (native host)', ok: false, detail: 'run the auto-setup installer, then reload' }
+            { name: 'Companion', ok: false, detail: 'not running — run npx appium-locators-inspector' }
         ]);
+    });
+
+    it('only warns about the native host while an npx companion runs', () => {
+        expect(companionChecks({ success: false, nativeHost: false }, 'id', true)).toEqual([
+            { name: 'Start button (native host)', ok: false, warn: true, detail: 'optional — run npx appium-locators-inspector setup to enable it' }
+        ]);
+    });
+
+    it('adds --extension-id for builds other than the store one', () => {
+        expect(setupCommandFor('annejeomdlkidljonmpmhcdnekkadjfb')).toBe('npx appium-locators-inspector setup');
+        expect(setupCommandFor('abcdefghijklmnopabcdefghijklmnop')).toBe('npx appium-locators-inspector setup --extension-id abcdefghijklmnopabcdefghijklmnop');
+    });
+});
+
+describe('popup status', () => {
+    it('counts a companion started with npx as running', () => {
+        const off = { backend: false, appium: false };
+        expect(combineStatus(off, null)).toEqual(off);
+        expect(combineStatus(off, { status: 'ok', appiumAvailable: false })).toEqual({ backend: true, appium: false });
+        expect(combineStatus(off, { status: 'ok', appiumAvailable: true })).toEqual({ backend: true, appium: true });
+        expect(combineStatus({ backend: true, appium: true }, null)).toEqual({ backend: true, appium: true });
     });
 });

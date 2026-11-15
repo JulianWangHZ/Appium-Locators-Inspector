@@ -110,7 +110,7 @@ describe('background service worker', () => {
     it('explains a missing companion and answers stop/start without a port', async () => {
         nativeAvailable = false;
         ports[0]!.drop('Specified native messaging host not found.');
-        expect(broadcasts).toContainEqual({ type: 'native-host-error', error: 'Install the local companion once to start servers and connect your devices.', needsHelp: true });
+        expect(broadcasts).toContainEqual({ type: 'native-host-error', error: 'Start the local companion with: npx appium-locators-inspector', needsHelp: true });
         expect(broadcasts.at(-1)).toMatchObject({ type: 'server-start-error', errors: [{ code: 'COMPANION_SETUP_REQUIRED' }] });
 
         let stop: any;
