@@ -40,5 +40,5 @@ build/
 *.crx
 
 # Project-specific
-backend/temp_*.png
-extension/installers/companion-release.json
+
+coverage/

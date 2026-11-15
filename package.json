@@ -1,14 +1,36 @@
 {
     "name": "appium-locators-inspector",
-    "version": "1.0.0",
+    "version": "1.1.0",
+    "private": true,
     "description": "Chrome extension for identifying locators in Android/iOS apps using Appium",
+    "type": "module",
+    "engines": {
+        "node": ">=18"
+    },
     "scripts": {
-        "backend": "cd backend && npm start",
-        "backend:dev": "cd backend && npm run dev",
-        "install:backend": "cd backend && npm install",
-        "install:all": "npm run install:backend",
-        "package:extension": "npm run build:companion && node -e \"require('fs').rmSync('appium-locators-inspector-extension.zip',{force:true})\" && cd extension && zip -r ../appium-locators-inspector-extension.zip . -x '*.DS_Store' -x '__MACOSX/*'",
-        "build:companion": "node scripts/build-companion-release.js"
+        "build": "tsx scripts/build.ts",
+        "package:extension": "npm run build && tsx scripts/package-extension.ts",
+        "backend": "npm run build && node dist/backend/server.js",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "express": "^4.21.2",
+        "ws": "^8.18.0"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.1.0",
+        "@types/express": "^4.17.21",
+        "@types/jsdom": "^21.1.7",
+        "@types/node": "^22.10.0",
+        "@types/ws": "^8.5.13",
+        "@vitest/coverage-v8": "^3.2.7",
+        "esbuild": "^0.28.2",
+        "jsdom": "^26.0.0",
+        "tsx": "^4.23.15",
+        "typescript": "^5.9.0",
+        "vitest": "^3.2.0"
     },
     "keywords": [
         "appium",
