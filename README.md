@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="extension/icons/icon128.png" width="72" height="72" alt="Appium Locators Inspector logo">
+<img src="src/extension/icons/icon128.png" width="72" height="72" alt="Appium Locators Inspector logo">
 
 # Appium Locators Inspector
 
