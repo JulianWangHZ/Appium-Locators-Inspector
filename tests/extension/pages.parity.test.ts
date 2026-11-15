@@ -106,7 +106,7 @@ describe('popup UI parity', () => {
 
 /* ── Popup: npx companion (new in 1.2.0, no legacy equivalent) ── */
 describe('popup with the npx companion', () => {
-    const setupReply = { success: false, code: 'COMPANION_SETUP_REQUIRED', error: 'Start the local companion with: npx appium-locators-inspector' };
+    const setupReply = { success: false, code: 'COMPANION_SETUP_REQUIRED', error: 'Set up the local companion once with: npx appium-locators-inspector setup' };
 
     async function openModern(state: Parameters<typeof popupOptions>[0]): Promise<Page> {
         const page = await openPage(popupOptions(state), { modern: ['popup/popup.ts'] });
@@ -114,17 +114,22 @@ describe('popup with the npx companion', () => {
         return page;
     }
 
-    it('shows the npx command with a Copy button when nothing is running', async () => {
+    it('recommends setup first, then the terminal command, when nothing is running', async () => {
         const page = await openModern({ backend: false, appium: false, serverReply: setupReply });
         click(page, page.document.getElementById('server-btn'));
         await page.settle();
         const modal = page.document.getElementById('error-modal')!;
         expect(modal.classList.contains('hidden')).toBe(false);
         expect(page.document.getElementById('error-modal-title')!.textContent).toBe('Start the companion');
-        expect(modal.querySelector('.cmd-code')!.textContent).toBe('npx appium-locators-inspector');
-        click(page, modal.querySelector('.cmd-row button'));
+        const items = Array.from(modal.querySelectorAll('.error-item'));
+        expect(items.map((i) => i.querySelector('.error-server')!.textContent)).toEqual(['Recommended: set up once', 'Or run it in a terminal']);
+        expect(items.map((i) => i.querySelector('.cmd-code')!.textContent)).toEqual([
+            'npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa',
+            'npx appium-locators-inspector'
+        ]);
+        for (const item of items) click(page, item.querySelector('.cmd-row button'));
         await page.settle();
-        expect(page.clipboard).toEqual(['npx appium-locators-inspector']);
+        expect(page.clipboard).toEqual(['npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa', 'npx appium-locators-inspector']);
         click(page, page.document.getElementById('error-help-btn'));
         expect(page.runtimeMessages.some((m) => m.type === '__openOptionsPage')).toBe(true);
     });
@@ -232,13 +237,15 @@ describe('options page with the npx companion', () => {
         return page;
     }
 
-    it('shows copyable start and setup commands for this extension ID', async () => {
+    it('shows setup as the recommended command, then the terminal command', async () => {
         const page = await openModern({ success: true, checks: [] });
-        expect(page.document.getElementById('cmd-start')!.textContent).toBe('npx appium-locators-inspector');
+        const headings = Array.from(page.document.querySelectorAll('#pane-setup h3')).map((h) => h.textContent);
+        expect(headings).toEqual(['Prerequisites', 'Recommended: set up once', 'Or run it in a terminal', 'Then']);
         expect(page.document.getElementById('cmd-setup')!.textContent).toBe('npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa');
+        expect(page.document.getElementById('cmd-start')!.textContent).toBe('npx appium-locators-inspector');
         for (const btn of Array.from(page.document.querySelectorAll('.cmd-copy'))) click(page, btn);
         await page.settle();
-        expect(page.clipboard).toEqual(['npx appium-locators-inspector', 'npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa']);
+        expect(page.clipboard).toEqual(['npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa', 'npx appium-locators-inspector']);
         expect(page.document.querySelector('.cmd-copy')!.textContent).toBe('Copied!');
         expect(page.document.getElementById('download-mac')).toBeNull();
         expect(page.document.querySelector('.rail-brand .ver')!.textContent).toBe('v1.0.0');
@@ -255,7 +262,7 @@ describe('options page with the npx companion', () => {
         await page.settle(20);
         const text = page.document.getElementById('check-result')!.textContent!;
         expect(text).toContain('All good');
-        expect(text).toContain('optional — run npx appium-locators-inspector setup to enable it');
+        expect(text).toContain('recommended — run npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa so the popup starts the companion without a terminal');
         expect(page.document.getElementById('check-result')!.innerHTML).toContain('adb &lt;sdk&gt;');
     });
 
@@ -265,6 +272,7 @@ describe('options page with the npx companion', () => {
         await page.settle(20);
         const text = page.document.getElementById('check-result')!.textContent!;
         expect(text).toContain('2 items need attention.');
-        expect(text).toContain('not running — run npx appium-locators-inspector');
+        expect(text).toContain('not set up — run npx appium-locators-inspector setup --extension-id testextensionidaaaaaaaaaaaaaaaa (recommended), or npx appium-locators-inspector');
+        expect(text).toContain('not running — click Start servers in the popup, or run npx appium-locators-inspector');
     });
 });

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-    allowedExtensionIds, browserTargets, installCompanion, packageVersion, uninstallCompanion, unixHostScript, windowsHostScript
+    allowedExtensionIds, browserTargets, installCompanion, isCompanionInstalled, packageVersion, uninstallCompanion, unixHostScript, windowsHostScript
 } from '../../src/cli/setup.js';
 
 const STORE = 'chrome-extension://annejeomdlkidljonmpmhcdnekkadjfb/';
@@ -32,7 +32,9 @@ describe('setup on macOS', () => {
         // A leftover from the old installer.
         mkdirSync(join(home, '.appium_locators_inspector', 'backend', 'node_modules'), { recursive: true });
 
+        expect(isCompanionInstalled(home)).toBe(false);
         const result = installCompanion({ home, platform: 'darwin', packageDir: pkg, nodePath: '/opt/node/bin/node', extraExtensionIds: [DEV_ID] });
+        expect(isCompanionInstalled(home)).toBe(true);
         const base = join(home, '.appium_locators_inspector');
         expect(result.installedFor).toEqual(['Google Chrome']);
         expect(result.skipped).toEqual(['Chromium', 'Microsoft Edge', 'Brave Browser']);

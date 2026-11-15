@@ -1,8 +1,8 @@
-import { SETUP_COMMAND, START_COMMAND } from '../../shared/defaults.js';
+import { SETUP_COMMAND } from '../../shared/defaults.js';
 import type { NativeMessage, ProcessStartResult } from '../../shared/protocol.js';
 import type { ServerStartError } from '../lib/messages.js';
 
-export const SETUP_REQUIRED_MESSAGE = `Start the local companion with: ${START_COMMAND}`;
+export const SETUP_REQUIRED_MESSAGE = `Set up the local companion once with: ${SETUP_COMMAND}`;
 
 export interface DisconnectExplanation {
     message: string;

@@ -325,7 +325,7 @@
             <!-- Setup -->
             <section class="settings-pane active" id="pane-setup">
                 <h1 class="pane-title">Setup</h1>
-                <p class="pane-lead">Welcome! The extension talks to your devices through a small local companion. Install the prerequisites below, then start the companion with one command.</p>
+                <p class="pane-lead">Welcome! The extension talks to your devices through a small local companion. Install the prerequisites below, then set it up with one command.</p>
 
                 <h3>Prerequisites</h3>
                 <div class="prereq-grid">
@@ -337,24 +337,24 @@
                     <div class="prereq-item"><strong>Xcode (iOS/macOS)</strong><span>iOS simulator support<br>From the Mac App Store</span></div>
                 </div>
 
-                <h3>Start the companion</h3>
-                <p class="cmd-note">Run this in a terminal and keep it open while you inspect. Press Ctrl+C to stop it.</p>
-                <div class="cmd-row">
-                    <pre><code id="cmd-start">npx appium-locators-inspector</code></pre>
-                    <button class="btn btn-secondary cmd-copy" data-copy="cmd-start" type="button">Copy</button>
-                </div>
-
-                <h3>Optional: start it from the popup</h3>
-                <p class="cmd-note">Run this once, then reload the extension. After that, <strong>Start servers</strong> in the popup starts the companion for you.</p>
+                <h3>Recommended: set up once</h3>
+                <p class="cmd-note">Run this once, then reload the extension. After that, <strong>Start servers</strong> in the popup starts the companion in the background — no terminal to keep open.</p>
                 <div class="cmd-row">
                     <pre><code id="cmd-setup">npx appium-locators-inspector setup</code></pre>
                     <button class="btn btn-secondary cmd-copy" data-copy="cmd-setup" type="button">Copy</button>
                 </div>
 
+                <h3>Or run it in a terminal</h3>
+                <p class="cmd-note">No setup needed. Keep the terminal open while you inspect; press Ctrl+C to stop.</p>
+                <div class="cmd-row">
+                    <pre><code id="cmd-start">npx appium-locators-inspector</code></pre>
+                    <button class="btn btn-secondary cmd-copy" data-copy="cmd-start" type="button">Copy</button>
+                </div>
+
                 <h3>Then</h3>
                 <div class="hint-row">
                     <span class="hint-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></span>
-                    <div><strong>Connect a device</strong><p>Open the popup. It finds the running companion within a few seconds — pick a platform and device, and you're inspecting.</p></div>
+                    <div><strong>Connect a device</strong><p>Open the popup and click Start servers (or keep the terminal running). Pick a platform and device — and you're inspecting.</p></div>
                 </div>
             </section>
 
@@ -421,8 +421,8 @@
                     <table>
                         <thead><tr><th>Issue</th><th>Solution</th></tr></thead>
                         <tbody>
-                            <tr><td>Popup says the companion isn't running</td><td>Run <code>npx appium-locators-inspector</code> and keep the terminal open.</td></tr>
-                            <tr><td>"Native messaging host not found"</td><td>Only needed for the popup's Start button: run <code>npx appium-locators-inspector setup</code>, then reload the extension.</td></tr>
+                            <tr><td>"Native messaging host not found"</td><td>Run <code>npx appium-locators-inspector setup</code>, then reload the extension.</td></tr>
+                            <tr><td>Start servers does nothing after an update</td><td>Click Stop servers, run <code>npx appium-locators-inspector setup</code> again, then reload the extension.</td></tr>
                             <tr><td>Port 8765 already in use</td><td>Another companion is running. Stop it, or start with <code>--port</code> and set the same port under Settings.</td></tr>
                             <tr><td>Appium not found</td><td><code>npm install -g appium</code></td></tr>
                             <tr><td>No Android devices</td><td>Run <code>adb devices</code> in a terminal. Enable USB debugging.</td></tr>

@@ -57,6 +57,7 @@ describe('companion start', () => {
         const health = await (await fetch(`http://127.0.0.1:${port}/health`)).json();
         expect(health).toEqual({ status: 'ok', fps: '30', appiumPort: String(appiumPort) });
         expect(lines).toContain('Appium Locators Inspector companion is running.');
+        expect(lines.some((l) => l.startsWith('Tip:'))).toBe(false);
 
         await fetch(`http://127.0.0.1:${port}/api/shutdown`, { method: 'POST' });
         expect(await running).toBe(0);
@@ -68,8 +69,9 @@ describe('companion start', () => {
         const appiumPort = (appium.address() as { port: number }).port;
         const port = await freePort();
         const { lines, out } = capture();
-        const running = runCompanion(pkg, { port, appiumPort, fps: 3, appium: true, verbose: false, appiumLogFile: join(pkg, 'appium.log') }, out);
+        const running = runCompanion(pkg, { port, appiumPort, fps: 3, appium: true, verbose: false, appiumLogFile: join(pkg, 'appium.log'), showSetupTip: true }, out);
         await until(() => lines.some((l) => l.startsWith('[backend] listening')));
+        expect(lines).toContain('Tip: run "npx appium-locators-inspector setup" once, and the popup\'s Start servers');
         expect(lines).toContain(`Using the Appium server already running on port ${appiumPort}.`);
         await fetch(`http://127.0.0.1:${port}/api/shutdown`, { method: 'POST' });
         expect(await running).toBe(0);
@@ -120,7 +122,7 @@ describe('cli main', () => {
         console.error = (l: string) => logs.push(`ERR ${l}`);
         try {
             expect(await main(['--help'], pkg)).toBe(0);
-            expect(logs.at(-1)).toContain('npx appium-locators-inspector setup');
+            expect(logs.at(-1)).toMatch(/setup +Recommended, once/);
             expect(await main(['-v'], pkg)).toBe(0);
             expect(logs.at(-1)).toBe('1.2.0');
             expect(await main(['bogus'], pkg)).toBe(2);

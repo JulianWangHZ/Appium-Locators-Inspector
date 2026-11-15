@@ -34,6 +34,11 @@ export function installBaseOf(home: string): string {
     return join(home, '.appium_locators_inspector');
 }
 
+/** True after `setup` (a native host manifest exists). */
+export function isCompanionInstalled(home: string): boolean {
+    return existsSync(join(installBaseOf(home), 'native-host', `${NATIVE_HOST_NAME}.json`));
+}
+
 export function browserTargets(home: string, platform: NodeJS.Platform): BrowserTarget[] {
     if (platform === 'darwin') {
         const support = join(home, 'Library', 'Application Support');

@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Appium Locators Inspector",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Inspect Android & iOS apps via Appium: live UI tree, ranked locators, and record actions into runnable Java/Python/TS tests.",
     "permissions": [
         "storage",

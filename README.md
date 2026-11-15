@@ -84,20 +84,20 @@ Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, 
 
 </details>
 
-**2. Start the local companion**
+**2. Set up the local companion (once)**
 
 ```bash
-npx appium-locators-inspector
+npx appium-locators-inspector setup
 ```
 
-Keep the terminal open while you inspect; press Ctrl+C to stop. It starts the local backend, and Appium too if it isn't already running. The popup picks it up within a few seconds.
+Then reload the extension in `chrome://extensions`. From now on, **Start servers** in the popup starts the companion in the background — no terminal to keep open. `npx appium-locators-inspector uninstall` undoes it.
 
-Prefer a button? Run `npx appium-locators-inspector setup` once and reload the extension. After that, **Start servers** in the popup starts the companion for you. `npx appium-locators-inspector uninstall` undoes it.
+Prefer not to install anything? Run `npx appium-locators-inspector` instead and keep that terminal open while you inspect (Ctrl+C stops it).
 
 ## Getting Started
 
-1. Run `npx appium-locators-inspector`, then click the toolbar icon to open the popup.
-2. Make sure the servers show **Running** → pick a **platform** → pick a **device / simulator** → **Connect**.
+1. Click the toolbar icon to open the popup.
+2. **Start servers** (or keep `npx appium-locators-inspector` running) → pick a **platform** → pick a **device / simulator** → **Connect**.
 3. The **Inspector** opens: the device mirror in the middle, the **Page Source** tree on the left, **Element Details** on the right.
 4. **Tap any element** to see its attributes and ranked locators. Copy the **Recommended** one, or **Copy as** Java / Python / TypeScript.
 5. Switch to the **Record** tab: tap an element, then choose an action (Click, Double tap, Swipe, Type…) or an assertion. Steps appear live.
@@ -158,8 +158,8 @@ Each row shows a version or path, so you know exactly what's missing.
 Everything runs locally — the extension never talks to a remote server.
 
 ```
-Chrome Extension                     npx appium-locators-inspector
-      │                                (or the native host, after `setup`)
+Chrome Extension                     native host (after `setup`)
+      │                                or npx appium-locators-inspector
       │                                        │
  Inspector UI  ◀── screen + page source ──  Local Backend  (:8765)
                                                │
@@ -169,7 +169,7 @@ Chrome Extension                     npx appium-locators-inspector
 
 - **Extension** — the UI (popup, inspector, settings), Manifest V3.
 - **Companion** — the npm package `appium-locators-inspector`: the backend plus a CLI that starts it (and Appium) in your terminal.
-- **Native host** — optional; registered by `setup` so Chrome can start the companion from the popup.
+- **Native host** — registered by `setup` so Chrome starts the companion from the popup (recommended).
 - **Backend** — a local Node server that drives Appium, streams the screen, and returns the page source.
 - **Appium** — performs the actual taps, gestures, and element queries on the device.
 
@@ -194,8 +194,8 @@ scripts/         build (dist/extension, dist/npm) and extension packaging
 
 | Issue | Fix |
 | --- | --- |
-| Popup says the companion isn't running | Run `npx appium-locators-inspector` and keep the terminal open. |
-| "Native messaging host not found" | Only needed for the popup's Start button: run `npx appium-locators-inspector setup`, then reload the extension. |
+| "Native messaging host not found" | Run `npx appium-locators-inspector setup`, then reload the extension. |
+| Start servers does nothing after an update | Click **Stop servers**, run `npx appium-locators-inspector setup` again, then reload the extension. |
 | Port 8765 already in use | Another companion is running. Stop it, or use `--port` and set the same port in Settings. |
 | Appium installed somewhere unusual | Set `APPIUM_PATH` to the Appium binary. Appium's log is in `~/.appium_locators_inspector/appium.log` (or use `--verbose`). |
 | Appium not found | `npm install -g appium` |

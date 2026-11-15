@@ -1,4 +1,4 @@
-import { START_COMMAND } from '../../shared/defaults.js';
+import { setupCommandFor, START_COMMAND } from '../../shared/defaults.js';
 import { copyText } from '../lib/clipboard.js';
 import { byId } from '../lib/html.js';
 import type { ServerStartError } from '../lib/messages.js';
@@ -22,19 +22,19 @@ function errorItem(title: string, text: string): HTMLElement {
     return item;
 }
 
-/** "Start the companion" card: the npx command with a Copy button. */
-function startCommandItem(): HTMLElement {
-    const item = errorItem('Start the local companion', 'Run this in a terminal and keep it open. The popup picks it up within a few seconds.');
+/** A card with a command and a Copy button. */
+function commandItem(title: string, text: string, command: string): HTMLElement {
+    const item = errorItem(title, text);
     const row = document.createElement('div');
     row.className = 'cmd-row';
     const code = document.createElement('code');
     code.className = 'cmd-code';
-    code.textContent = START_COMMAND;
+    code.textContent = command;
     const copy = document.createElement('button');
     copy.type = 'button';
     copy.className = 'btn btn-quiet btn-sm';
     copy.textContent = 'Copy';
-    copy.addEventListener('click', () => void copyText(START_COMMAND, copy));
+    copy.addEventListener('click', () => void copyText(command, copy));
     row.append(code, copy);
     item.appendChild(row);
     return item;
@@ -65,7 +65,16 @@ export function createErrorModal({ onHelp }: { onHelp: () => void }) {
             if (helpBtn) helpBtn.textContent = setupRequired ? 'More setup options' : 'Open settings';
 
             if (setupRequired) {
-                body.appendChild(startCommandItem());
+                body.appendChild(commandItem(
+                    'Recommended: set up once',
+                    'Run this, then reload the extension. Start servers will then work from here — no terminal to keep open.',
+                    setupCommandFor(chrome.runtime.id)
+                ));
+                body.appendChild(commandItem(
+                    'Or run it in a terminal',
+                    'Keep the terminal open. The popup picks it up within a few seconds.',
+                    START_COMMAND
+                ));
             } else {
                 errors.forEach((error) => {
                     body.appendChild(errorItem(error.server ? `${error.server} needs attention:` : 'Needs attention:', error.error ?? ''));
