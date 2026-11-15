@@ -4,14 +4,15 @@ import { parseArgs } from 'node:util';
 import { DEFAULT_APPIUM_PORT, DEFAULT_BACKEND_PORT, NPM_PACKAGE_NAME } from '../shared/defaults.js';
 import { DEFAULT_SCREEN_FPS, normalizeScreenFps } from '../shared/fps.js';
 import { parsePort } from '../shared/validation.js';
-import { installBaseOf, installCompanion, packageVersion, uninstallCompanion } from './setup.js';
+import { installBaseOf, installCompanion, isCompanionInstalled, packageVersion, uninstallCompanion } from './setup.js';
 import { runCompanion, type Output } from './start.js';
 
 const HELP = `Appium Locators Inspector companion
 
 Usage:
-  npx ${NPM_PACKAGE_NAME}            Start the companion (backend + Appium). Ctrl+C stops it.
-  npx ${NPM_PACKAGE_NAME} setup      Optional: let the extension's "Start servers" button start it.
+  npx ${NPM_PACKAGE_NAME} setup      Recommended, once: the popup's "Start servers" then starts
+                                           the companion in the background (no terminal needed).
+  npx ${NPM_PACKAGE_NAME}            Or run it in this terminal (backend + Appium). Ctrl+C stops it.
   npx ${NPM_PACKAGE_NAME} uninstall  Remove what "setup" installed.
 
 Options:
@@ -71,7 +72,8 @@ export async function main(argv: string[], packageDir: string): Promise<number> 
                 fps: normalizeScreenFps(values.fps),
                 appium: !values['no-appium'],
                 verbose: !!values.verbose,
-                appiumLogFile: join(installBaseOf(homedir()), 'appium.log')
+                appiumLogFile: join(installBaseOf(homedir()), 'appium.log'),
+                showSetupTip: !isCompanionInstalled(homedir())
             }, out);
         case 'setup': {
             const result = installCompanion({

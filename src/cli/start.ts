@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { join } from 'node:path';
 import { buildSpawnEnv, findAppium } from '../native-host/environment.js';
 import { killProcessTree } from '../native-host/ports.js';
+import { SETUP_COMMAND } from '../shared/defaults.js';
 import { isPortInUse } from './ports.js';
 
 export interface StartOptions {
@@ -15,6 +16,8 @@ export interface StartOptions {
     /** Print Appium's own log here instead of writing it to appiumLogFile. */
     verbose: boolean;
     appiumLogFile: string;
+    /** Suggest `setup` (not yet done) so the user needs no terminal next time. */
+    showSetupTip?: boolean;
 }
 
 export interface Output {
@@ -92,6 +95,11 @@ export async function runCompanion(packageDir: string, opts: StartOptions, out: 
     out.log('');
     out.log('Appium Locators Inspector companion is running.');
     out.log('Open the extension popup and pick your device. Press Ctrl+C here to stop.');
+    if (opts.showSetupTip) {
+        out.log('');
+        out.log(`Tip: run "${SETUP_COMMAND}" once, and the popup's Start servers`);
+        out.log('button will start the companion for you, with no terminal to keep open.');
+    }
     out.log('');
 
     return new Promise((resolve) => {

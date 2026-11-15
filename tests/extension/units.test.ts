@@ -117,16 +117,19 @@ describe('environment check', () => {
         expect(html).toContain('a &amp; b');
     });
 
-    it('asks to start the companion when nothing runs', () => {
-        expect(companionChecks({ success: false, nativeHost: false }, 'id')).toEqual([
-            { name: 'Companion', ok: false, detail: 'not running — run npx appium-locators-inspector' }
+    it('recommends setup when nothing runs', () => {
+        expect(companionChecks({ success: false, nativeHost: false }, 'annejeomdlkidljonmpmhcdnekkadjfb')).toEqual([
+            { name: 'Companion', ok: false, detail: 'not set up — run npx appium-locators-inspector setup (recommended), or npx appium-locators-inspector' }
         ]);
     });
 
-    it('only warns about the native host while an npx companion runs', () => {
-        expect(companionChecks({ success: false, nativeHost: false }, 'id', true)).toEqual([
-            { name: 'Start button (native host)', ok: false, warn: true, detail: 'optional — run npx appium-locators-inspector setup to enable it' }
-        ]);
+    it('recommends setup while an npx companion runs, with this build\'s extension ID', () => {
+        expect(companionChecks({ success: false, nativeHost: false }, 'abcdefghijklmnopabcdefghijklmnop', true)).toEqual([{
+            name: 'Start button (native host)',
+            ok: false,
+            warn: true,
+            detail: 'recommended — run npx appium-locators-inspector setup --extension-id abcdefghijklmnopabcdefghijklmnop so the popup starts the companion without a terminal'
+        }]);
     });
 
     it('adds --extension-id for builds other than the store one', () => {

@@ -1,5 +1,7 @@
 import type { DiagnosticCheck, SetupDiagnostics } from '../../shared/protocol.js';
-import { NATIVE_HOST_NAME, SETUP_COMMAND, START_COMMAND, STORE_EXTENSION_ID } from '../../shared/defaults.js';
+import { NATIVE_HOST_NAME, setupCommandFor, START_COMMAND } from '../../shared/defaults.js';
+
+export { setupCommandFor };
 import { escapeHtml } from '../lib/html.js';
 import type { SetupCheckResponse } from '../lib/messages.js';
 
@@ -11,10 +13,11 @@ const DIAGNOSTICS_TIMEOUT_MS = 12_000;
  * companion started with npx is already running.
  */
 export function companionChecks(setup: SetupCheckResponse, extensionId: string, backendRunning = false): DiagnosticCheck[] {
+    const setupCommand = setupCommandFor(extensionId);
     if (!setup.success || !setup.diagnostics) {
         return [backendRunning
-            ? { name: 'Start button (native host)', ok: false, warn: true, detail: `optional — run ${SETUP_COMMAND} to enable it` }
-            : { name: 'Companion', ok: false, detail: `not running — run ${START_COMMAND}` }];
+            ? { name: 'Start button (native host)', ok: false, warn: true, detail: `recommended — run ${setupCommand} so the popup starts the companion without a terminal` }
+            : { name: 'Companion', ok: false, detail: `not set up — run ${setupCommand} (recommended), or ${START_COMMAND}` }];
     }
     const d: SetupDiagnostics = setup.diagnostics;
     return [
@@ -23,10 +26,10 @@ export function companionChecks(setup: SetupCheckResponse, extensionId: string, 
         {
             name: 'Backend installed',
             ok: d.backendInstalled,
-            detail: d.backendInstalled ? `${d.companionVersion ? `v${d.companionVersion} · ` : ''}${d.backendPath}` : `missing — run ${SETUP_COMMAND}`
+            detail: d.backendInstalled ? `${d.companionVersion ? `v${d.companionVersion} · ` : ''}${d.backendPath}` : `missing — run ${setupCommand}`
         },
-        { name: 'Dependencies installed', ok: d.dependenciesInstalled, detail: d.dependenciesInstalled ? 'ready' : `run ${SETUP_COMMAND}` },
-        { name: 'Extension ID (allowed_origins)', ok: d.extensionAllowed, detail: `${extensionId}${d.extensionAllowed ? '' : ` — not allowed, run ${SETUP_COMMAND} --extension-id ${extensionId}`}` }
+        { name: 'Dependencies installed', ok: d.dependenciesInstalled, detail: d.dependenciesInstalled ? 'ready' : `run ${setupCommand}` },
+        { name: 'Extension ID (allowed_origins)', ok: d.extensionAllowed, detail: `${extensionId}${d.extensionAllowed ? '' : ` — not allowed, run ${setupCommand}`}` }
     ];
 }
 
@@ -36,7 +39,7 @@ export async function backendChecks(port: string | number): Promise<DiagnosticCh
         const data = (await response.json()) as { success?: boolean; checks?: DiagnosticCheck[] };
         return data.success && Array.isArray(data.checks) ? data.checks : [];
     } catch {
-        return [{ name: 'Backend server', ok: false, detail: `not running — run ${START_COMMAND}` }];
+        return [{ name: 'Backend server', ok: false, detail: `not running — click Start servers in the popup, or run ${START_COMMAND}` }];
     }
 }
 
@@ -59,7 +62,3 @@ export function renderChecks(checks: DiagnosticCheck[]): string {
     return summary + rows;
 }
 
-/** `setup` must allow this extension's ID; the store build is allowed by default. */
-export function setupCommandFor(extensionId: string): string {
-    return extensionId === STORE_EXTENSION_ID ? SETUP_COMMAND : `${SETUP_COMMAND} --extension-id ${extensionId}`;
-}
