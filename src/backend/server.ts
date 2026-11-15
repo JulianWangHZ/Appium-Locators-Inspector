@@ -1,6 +1,6 @@
 import { AppiumSessions } from './appium-client.js';
 import { createBackendServer } from './app.js';
-import { SCREEN_CAPTURE_FPS, SERVER_HOST, SERVER_PORT, WS_HEARTBEAT_INTERVAL_MS } from './config.js';
+import { APPIUM_URL, SCREEN_CAPTURE_FPS, SERVER_HOST, SERVER_PORT, WS_HEARTBEAT_INTERVAL_MS } from './config.js';
 import { isAdbAvailable, isIOSToolsAvailable } from './device-manager.js';
 import { errorMessage } from './exec.js';
 import { ScreenMirror } from './screen-mirror.js';
@@ -14,7 +14,9 @@ const server = createBackendServer({
     mirror,
     port: SERVER_PORT,
     defaultFps: SCREEN_CAPTURE_FPS,
-    heartbeatMs: WS_HEARTBEAT_INTERVAL_MS
+    heartbeatMs: WS_HEARTBEAT_INTERVAL_MS,
+    appiumUrl: APPIUM_URL,
+    onShutdown: () => void shutdown('Shutdown requested by the extension')
 });
 
 server.listen(SERVER_PORT, SERVER_HOST, async () => {

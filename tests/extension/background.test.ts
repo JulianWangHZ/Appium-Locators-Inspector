@@ -84,7 +84,7 @@ describe('NativeHostClient', () => {
 describe('native errors', () => {
     it('explains common native-host failures', () => {
         expect(explainDisconnect('Specified native messaging host not found.')).toMatchObject({ needsHelp: true });
-        expect(explainDisconnect('Access to the specified native messaging host is forbidden.').message).toMatch('re-run the companion installer');
+        expect(explainDisconnect('Access to the specified native messaging host is forbidden.').message).toMatch('npx appium-locators-inspector setup again');
         expect(explainDisconnect('Native host has exited.').message).toMatch('Node.js');
         expect(explainDisconnect('weird')).toEqual({ message: 'weird', needsHelp: false });
     });

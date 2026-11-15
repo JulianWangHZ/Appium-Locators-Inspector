@@ -1,4 +1,5 @@
 // Background service worker: owns the native-host port, log history and device connections.
+import { SETUP_COMMAND } from '../../shared/defaults.js';
 import type { NativeMessage } from '../../shared/protocol.js';
 import { broadcast, type BackgroundRequest, type CommandResponse, type ServerStatus, type SetupCheckResponse } from '../lib/messages.js';
 import { appiumPortOf, loadSettings, normalizeFpsLimit } from '../lib/settings.js';
@@ -68,7 +69,7 @@ async function checkSetup(): Promise<SetupCheckResponse> {
         return {
             success: false,
             nativeHost: false,
-            error: 'Native host not found. Run the Appium Locators Inspector auto setup installer, then reload the extension.'
+            error: `Native host not registered. Run ${SETUP_COMMAND}, then reload the extension.`
         };
     }
     try {

@@ -44,7 +44,9 @@ function which(command: string, env: NodeJS.ProcessEnv): string | null {
     }
 }
 
+/** APPIUM_PATH wins, then PATH, then the usual install locations. */
 export function findAppium(env: NodeJS.ProcessEnv): string | null {
+    if (env.APPIUM_PATH && existsSync(env.APPIUM_PATH)) return env.APPIUM_PATH;
     const home = homeDir(env);
     const appData = env.APPDATA || '';
     const candidates = [

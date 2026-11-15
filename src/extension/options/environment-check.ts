@@ -1,14 +1,20 @@
 import type { DiagnosticCheck, SetupDiagnostics } from '../../shared/protocol.js';
-import { NATIVE_HOST_NAME } from '../../shared/defaults.js';
+import { NATIVE_HOST_NAME, SETUP_COMMAND, START_COMMAND, STORE_EXTENSION_ID } from '../../shared/defaults.js';
 import { escapeHtml } from '../lib/html.js';
 import type { SetupCheckResponse } from '../lib/messages.js';
 
 const DIAGNOSTICS_TIMEOUT_MS = 12_000;
 
-/** Companion checks from the native host's diagnose report. */
-export function companionChecks(setup: SetupCheckResponse, extensionId: string): DiagnosticCheck[] {
+/**
+ * Companion checks from the native host's diagnose report. The native host is
+ * optional (it powers the popup's Start button), so it only warns while a
+ * companion started with npx is already running.
+ */
+export function companionChecks(setup: SetupCheckResponse, extensionId: string, backendRunning = false): DiagnosticCheck[] {
     if (!setup.success || !setup.diagnostics) {
-        return [{ name: 'Companion (native host)', ok: false, detail: setup.error || 'run the auto-setup installer, then reload' }];
+        return [backendRunning
+            ? { name: 'Start button (native host)', ok: false, warn: true, detail: `optional — run ${SETUP_COMMAND} to enable it` }
+            : { name: 'Companion', ok: false, detail: `not running — run ${START_COMMAND}` }];
     }
     const d: SetupDiagnostics = setup.diagnostics;
     return [
@@ -17,10 +23,10 @@ export function companionChecks(setup: SetupCheckResponse, extensionId: string):
         {
             name: 'Backend installed',
             ok: d.backendInstalled,
-            detail: d.backendInstalled ? `${d.companionVersion ? `v${d.companionVersion} · ` : ''}${d.backendPath}` : 'missing — re-run installer'
+            detail: d.backendInstalled ? `${d.companionVersion ? `v${d.companionVersion} · ` : ''}${d.backendPath}` : `missing — run ${SETUP_COMMAND}`
         },
-        { name: 'Dependencies installed', ok: d.dependenciesInstalled, detail: d.dependenciesInstalled ? 'node_modules present' : 'run the installer' },
-        { name: 'Extension ID (allowed_origins)', ok: d.extensionAllowed, detail: `${extensionId}${d.extensionAllowed ? '' : ' — not allowed, re-run installer'}` }
+        { name: 'Dependencies installed', ok: d.dependenciesInstalled, detail: d.dependenciesInstalled ? 'ready' : `run ${SETUP_COMMAND}` },
+        { name: 'Extension ID (allowed_origins)', ok: d.extensionAllowed, detail: `${extensionId}${d.extensionAllowed ? '' : ` — not allowed, run ${SETUP_COMMAND} --extension-id ${extensionId}`}` }
     ];
 }
 
@@ -30,7 +36,7 @@ export async function backendChecks(port: string | number): Promise<DiagnosticCh
         const data = (await response.json()) as { success?: boolean; checks?: DiagnosticCheck[] };
         return data.success && Array.isArray(data.checks) ? data.checks : [];
     } catch {
-        return [{ name: 'Backend server', ok: false, detail: 'not running — click "Start servers" in the popup first' }];
+        return [{ name: 'Backend server', ok: false, detail: `not running — run ${START_COMMAND}` }];
     }
 }
 
@@ -51,4 +57,9 @@ export function renderChecks(checks: DiagnosticCheck[]): string {
         </div>
     `).join('');
     return summary + rows;
+}
+
+/** `setup` must allow this extension's ID; the store build is allowed by default. */
+export function setupCommandFor(extensionId: string): string {
+    return extensionId === STORE_EXTENSION_ID ? SETUP_COMMAND : `${SETUP_COMMAND} --extension-id ${extensionId}`;
 }

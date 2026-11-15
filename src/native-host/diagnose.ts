@@ -19,11 +19,15 @@ export function diagnoseSetup(installBase: string, extensionId: unknown): SetupD
     const manifest = readJson(manifestPath);
     const allowedOrigins = manifest?.allowed_origins;
     const origin = typeof extensionId === 'string' && extensionId ? `chrome-extension://${extensionId}/` : null;
-    const version = readJson(packageJsonPath)?.version;
+    const backendPackage = readJson(packageJsonPath);
+    const version = backendPackage?.version;
+    const dependencies = backendPackage?.dependencies;
+    // The npm build bundles its dependencies into server.js; older installs used node_modules.
+    const selfContained = !!backendPackage && (!dependencies || Object.keys(dependencies as object).length === 0);
 
     return {
         backendInstalled: existsSync(join(backendPath, 'server.js')) && existsSync(packageJsonPath),
-        dependenciesInstalled: existsSync(join(backendPath, 'node_modules')),
+        dependenciesInstalled: selfContained || existsSync(join(backendPath, 'node_modules')),
         launcherInstalled: existsSync(join(installBase, 'native-host', 'launcher.js')),
         manifestInstalled: !!manifest,
         extensionAllowed: !!origin && Array.isArray(allowedOrigins) && allowedOrigins.includes(origin),

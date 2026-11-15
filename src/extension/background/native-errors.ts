@@ -1,7 +1,8 @@
+import { SETUP_COMMAND, START_COMMAND } from '../../shared/defaults.js';
 import type { NativeMessage, ProcessStartResult } from '../../shared/protocol.js';
 import type { ServerStartError } from '../lib/messages.js';
 
-export const SETUP_REQUIRED_MESSAGE = 'Install the local companion once to start servers and connect your devices.';
+export const SETUP_REQUIRED_MESSAGE = `Start the local companion with: ${START_COMMAND}`;
 
 export interface DisconnectExplanation {
     message: string;
@@ -14,7 +15,7 @@ export function explainDisconnect(error: string): DisconnectExplanation {
         return { message: SETUP_REQUIRED_MESSAGE, needsHelp: true };
     }
     if (error.includes('Access to the specified native messaging host is forbidden')) {
-        return { message: 'Open Settings, re-run the companion installer, then reload the extension.', needsHelp: true };
+        return { message: `Run ${SETUP_COMMAND} again, then reload the extension.`, needsHelp: true };
     }
     if (error.includes('Native host has exited')) {
         return { message: 'Native host crashed. Check that Node.js is installed and in your PATH.', needsHelp: true };

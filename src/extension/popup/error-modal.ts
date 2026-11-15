@@ -1,10 +1,11 @@
+import { START_COMMAND } from '../../shared/defaults.js';
+import { copyText } from '../lib/clipboard.js';
 import { byId } from '../lib/html.js';
 import type { ServerStartError } from '../lib/messages.js';
 
 export function isSetupRequiredError(error: Partial<ServerStartError> | undefined): boolean {
     return error?.code === 'COMPANION_SETUP_REQUIRED' ||
         error?.code === 'NATIVE_HOST_ERROR' ||
-        !!error?.error?.includes('auto setup installer') ||
         !!error?.error?.includes('native host');
 }
 
@@ -18,6 +19,24 @@ function errorItem(title: string, text: string): HTMLElement {
     body.className = 'error-text';
     body.textContent = text;
     item.append(server, body);
+    return item;
+}
+
+/** "Start the companion" card: the npx command with a Copy button. */
+function startCommandItem(): HTMLElement {
+    const item = errorItem('Start the local companion', 'Run this in a terminal and keep it open. The popup picks it up within a few seconds.');
+    const row = document.createElement('div');
+    row.className = 'cmd-row';
+    const code = document.createElement('code');
+    code.className = 'cmd-code';
+    code.textContent = START_COMMAND;
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'btn btn-quiet btn-sm';
+    copy.textContent = 'Copy';
+    copy.addEventListener('click', () => void copyText(START_COMMAND, copy));
+    row.append(code, copy);
+    item.appendChild(row);
     return item;
 }
 
@@ -42,11 +61,11 @@ export function createErrorModal({ onHelp }: { onHelp: () => void }) {
             if (!modal || !body) return;
             body.innerHTML = '';
             const setupRequired = errors.some(isSetupRequiredError);
-            if (title) title.textContent = setupRequired ? 'One-time setup needed' : 'Setup information';
-            if (helpBtn) helpBtn.textContent = setupRequired ? 'Set up companion' : 'Open settings';
+            if (title) title.textContent = setupRequired ? 'Start the companion' : 'Setup information';
+            if (helpBtn) helpBtn.textContent = setupRequired ? 'More setup options' : 'Open settings';
 
             if (setupRequired) {
-                body.appendChild(errorItem('Appium Locators Inspector is ready.', 'Install the local companion once to start servers and connect your devices.'));
+                body.appendChild(startCommandItem());
             } else {
                 errors.forEach((error) => {
                     body.appendChild(errorItem(error.server ? `${error.server} needs attention:` : 'Needs attention:', error.error ?? ''));

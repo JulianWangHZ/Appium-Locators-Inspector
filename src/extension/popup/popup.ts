@@ -6,6 +6,7 @@ import { currentDocumentTheme, loadTheme, saveTheme, setDocumentTheme } from '..
 import { createErrorModal, isSetupRequiredError } from './error-modal.js';
 import { createLogPanel } from './log-panel.js';
 import { createSteps } from './steps.js';
+import { combineStatus, type Health } from './status.js';
 
 const STATUS_POLL_MS = 2000;
 const HEALTH_TIMEOUT_MS = 5000;
@@ -45,11 +46,18 @@ let backendUrl = '';
 let devices: DeviceInfo[] = [];
 let selectedPlatform: Platform | null = null;
 let selectedDevice: DeviceInfo | null = null;
+/** What the native host reports (servers it started). */
+let nativeStatus: ServerStatus = { backend: false, appium: false };
+/** Last /health reply; set when a companion started with npx (or the native host) answers. */
+let health: Health | null = null;
 let serverStatus: ServerStatus = { backend: false, appium: false };
 let healthCheckRetries = 0;
 
+
 document.addEventListener('DOMContentLoaded', async () => {
     void loadTheme().then(setDocumentTheme);
+    const version = document.querySelector('.appfoot .version');
+    if (version) version.textContent = `v${chrome.runtime.getManifest().version}`;
     backendUrl = await loadBackendUrl();
     setupEventListeners();
     const response = await sendToBackground<{ logs?: Array<{ message: string; level: string }> }>({ type: 'request-logs' }).catch(() => undefined);
@@ -96,7 +104,8 @@ function handleBackgroundEvent(message: BackgroundEvent): void {
             }
             return;
         case 'server-status':
-            serverStatus = message.status || { backend: false, appium: false };
+            nativeStatus = message.status || { backend: false, appium: false };
+            serverStatus = combineStatus(nativeStatus, health);
             renderServerStatus();
             return;
         default:
@@ -114,17 +123,17 @@ function openSettings(): void {
 }
 
 async function updateServerStatus(): Promise<void> {
-    let response: ServerStatus | undefined;
     try {
-        response = await sendToBackground<ServerStatus>({ type: 'get-status' });
+        nativeStatus = (await sendToBackground<ServerStatus>({ type: 'get-status' })) || { backend: false, appium: false };
     } catch {
-        return;
+        nativeStatus = { backend: false, appium: false };
     }
-    serverStatus = response || { backend: false, appium: false };
+    health = await fetchHealth();
+    serverStatus = combineStatus(nativeStatus, health);
     renderServerStatus();
 
     if (serverStatus.backend) {
-        void checkBackendHealth();
+        showHealthNotice();
     } else {
         // Reset the flow below servers; guidance comes from step states, not a banner.
         selectedPlatform = null;
@@ -152,13 +161,17 @@ function renderServerStatus(): void {
 
 async function handleServerToggle(): Promise<void> {
     const isRunning = serverStatus.backend || serverStatus.appium;
+    // A companion started in a terminal (npx) is stopped through the backend itself.
+    const startedOutsideNativeHost = isRunning && !nativeStatus.backend && !nativeStatus.appium;
     serverBtn.disabled = true;
     serverBtn.textContent = isRunning ? 'Stopping…' : 'Starting…';
 
     let response: CommandResponse | undefined;
     let sendError: string | undefined;
     try {
-        response = await sendToBackground<CommandResponse>({ type: isRunning ? 'stop-server' : 'start-server' });
+        response = startedOutsideNativeHost
+            ? await shutdownBackend()
+            : await sendToBackground<CommandResponse>({ type: isRunning ? 'stop-server' : 'start-server' });
     } catch (error) {
         sendError = (error as Error).message;
     }
@@ -176,25 +189,38 @@ async function handleServerToggle(): Promise<void> {
     renderServerStatus();
 }
 
-async function checkBackendHealth(): Promise<void> {
+async function shutdownBackend(): Promise<CommandResponse> {
+    const response = await fetch(`${backendUrl}/api/shutdown`, { method: 'POST', signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) });
+    return (await response.json()) as CommandResponse;
+}
+
+async function fetchHealth(): Promise<Health | null> {
     try {
         const response = await fetch(`${backendUrl}/health`, { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) });
-        const data = (await response.json()) as { status?: string; adbAvailable?: boolean; iosToolsAvailable?: boolean };
+        const data = (await response.json()) as Health;
         healthCheckRetries = 0;
-        if (data.status !== 'ok') return;
-        showNotice('');
-        if (!data.adbAvailable && !data.iosToolsAvailable) {
-            showNotice('Neither ADB nor iOS tools are available. Install Android SDK or Xcode.', { error: false });
-        } else if (!data.adbAvailable) {
-            showNotice('ADB not available. Android device detection will not work.', { error: false });
-        } else if (!data.iosToolsAvailable) {
-            showNotice('iOS tools not available. iOS simulator detection will not work.', { error: false });
-        }
+        return data.status === 'ok' ? data : null;
     } catch {
-        healthCheckRetries++;
+        // Only worth a notice when the native host says the backend should be up.
+        if (nativeStatus.backend) healthCheckRetries++;
+        return null;
+    }
+}
+
+function showHealthNotice(): void {
+    if (!health) {
         if (healthCheckRetries > MAX_HEALTH_RETRIES) {
             showNotice('Backend server is not responding. It may still be starting up.', { error: true });
         }
+        return;
+    }
+    showNotice('');
+    if (!health.adbAvailable && !health.iosToolsAvailable) {
+        showNotice('Neither ADB nor iOS tools are available. Install Android SDK or Xcode.', { error: false });
+    } else if (!health.adbAvailable) {
+        showNotice('ADB not available. Android device detection will not work.', { error: false });
+    } else if (!health.iosToolsAvailable) {
+        showNotice('iOS tools not available. iOS simulator detection will not work.', { error: false });
     }
 }
 
